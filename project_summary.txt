@@ -208,3 +208,32 @@ Modular Skill Tree Redesign:
   - Showroom -> Dealership (Tier 3): Level 30 + Required Expansion-related Skill Level 5.
 * Resource Mines & Quarries: Contains 3 universal skills (Extraction Technology, Heavy Machinery, and Storage Infrastructure) along with 2 unique skills based on the mined deposit (e.g. Conductivity Grade for Copper Mine).
 * Corporate Mergers: Have 7 skills: 4 Universal Corporate Skills (Corporate Finance, Brand Management, Supply Chain Management, Business Expansion) along with 3 Industry-Specific Corporate Skills.
+
+--------------------------------------------------------------------------------
+6. VERSION 0.7: TUTORIAL, STARTING ECONOMY & REGIONAL PROGRESSION
+--------------------------------------------------------------------------------
+Starting Region Redesign:
+* Grid Size: Downsized from 20x20 to 15x15 region size (225 tiles total) dynamically.
+* Chosen Business & Node Clusters: New games choose between Furniture, Food, Clothing, or Grocery retail shops. This choice procedurally populates starting region deposit nodes (e.g. high Timber/moderate Stone for Furniture Region; high Crops for Food Region). Map nodes are limited to key raw materials to encourage regional expansions later.
+* Starting Wallet & Stockpile: Bootstraps the game state with ₹25,000 Money, 80 Stone, 80 Wood, 60 Iron Ore, and 40 Mortar.
+
+Interactive Advisor Story Tutorial:
+* Step-by-Step Flow: Implemented a 10-step interactive advisor dialog modal explaining:
+  1. Welcome introduction
+  2. Placing Administrative HQ (with a 5-minute queue duration)
+  3. Starting business type selection
+  4. Material shortage failure (triggers simulated alert and guides to Import HQ)
+  5. Building Import Headquarters (Trade Center) and importing Wood & Cement
+  6. Logistics Headquarters placement to haul resources
+  7. Builder Company setup to handle permanent construction
+  8. Retail shop construction and opening celebration
+  9. Placing a Lumber Mill on a highlighted Forest node
+  10. Tutorial completion recap unlocking standard gameplay
+* Free Tutorial Construction: Core infrastructure buildings are constructed for free during the tutorial.
+* Construction Speed-Up: Features a free Speed-Up button during tutorial construction projects to instantly clear active queues.
+* Floating Advisor Tip Bar: Renders a floating, non-blocking advisor tip card at the top-left of the map grid when placement is active.
+
+Permanent Core Infrastructure:
+* Permanent Placement: Administrative HQ, Import HQ (Trade Center), Logistics HQ, and Builder Company cannot be demolished or reconstructed. They are hidden from the catalog build modal after tutorial completion.
+* Custom Infrastructure Upgrades: Integrated centralized infrastructure upgrade cost lookup lists. Upgrades check against specific pricing configs instead of the default level-up formulas.
+* Safe-Skip & Recovery: Includes a "Skip Tutorial" bypass button, and automatically skips the tutorial on initial loads if existing buildings are detected.

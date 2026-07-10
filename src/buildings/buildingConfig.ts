@@ -907,10 +907,26 @@ export interface VehicleConfig {
   capacity: number;
   fuelEfficiency: number;
 }
-
 export const VEHICLE_CONFIGS: VehicleConfig[] = [
   { id: "pickup", name: "Pickup Truck", cost: 1000, deliverySpeedBonus: 0.1, capacity: 50, fuelEfficiency: 0.8 },
   { id: "delivery_van", name: "Delivery Van", cost: 2500, deliverySpeedBonus: 0.25, capacity: 150, fuelEfficiency: 0.85 },
   { id: "medium_truck", name: "Medium Delivery Truck", cost: 6000, deliverySpeedBonus: 0.45, capacity: 400, fuelEfficiency: 0.9 },
   { id: "heavy_truck", name: "Heavy Cargo Truck", cost: 12000, deliverySpeedBonus: 0.7, capacity: 1000, fuelEfficiency: 0.95 },
 ];
+
+// Override building configs construction values dynamically based on central economyConfig values
+import { CONSTRUCTION_ECONOMY_CONFIG } from "./economyConfig";
+for (const [key, cost] of Object.entries(CONSTRUCTION_ECONOMY_CONFIG)) {
+  if (BUILDING_CONFIGS[key]) {
+    BUILDING_CONFIGS[key].baseCost = cost.money;
+    BUILDING_CONFIGS[key].baseStoneCost = cost.stone;
+    BUILDING_CONFIGS[key].baseWoodCost = cost.wood;
+    BUILDING_CONFIGS[key].baseIronCost = cost.iron;
+    BUILDING_CONFIGS[key].baseMortarCost = cost.mortar;
+
+    // Sanitize description description lists
+    let newDesc = BUILDING_CONFIGS[key].description;
+    // Replace text numbers dynamically if necessary, or just keep descriptions clean.
+  }
+}
+

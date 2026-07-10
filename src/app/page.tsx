@@ -37,6 +37,7 @@ import {
   MERGERS_CONFIG, 
   VEHICLE_CONFIGS 
 } from "../buildings/buildingConfig";
+import { INFRASTRUCTURE_UPGRADE_COSTS } from "../buildings/economyConfig";
 import { 
   BUSINESS_SKILLS, 
   UNIVERSAL_EXTRACTOR_SKILLS, 
@@ -50,32 +51,110 @@ import { GameState, saveGame, loadGame, isSupabaseConfigured } from "../database
 const LOCAL_SAVE_ID = "proto_player_v0_2";
 
 // Helper to pre-populate fixed natural resource nodes on the 20x20 grid procedurally
-const generateProceduralDepositNodes = () => {
+// Helper to generate dynamic starting region layouts depending on chosen business
+const generateRegionDepositNodes = (businessType: string) => {
   const nodes: { x: number; y: number; type: "iron_deposit" | "coal_deposit" | "oil_field" | "limestone_deposit" | "fertile_land" | "forest" | "stone_deposit" | "copper_deposit" | "silicon_deposit" | "uranium_deposit" }[] = [];
   
-  // Seed resource clusters across 20x20 map
-  const clusters = [
-    { type: "iron_deposit" as const, cx: 2, cy: 2, count: 4 },
-    { type: "coal_deposit" as const, cx: 15, cy: 2, count: 4 },
-    { type: "limestone_deposit" as const, cx: 2, cy: 15, count: 4 },
-    { type: "oil_field" as const, cx: 15, cy: 15, count: 4 },
-    { type: "fertile_land" as const, cx: 8, cy: 8, count: 9 },
-    { type: "forest" as const, cx: 9, cy: 3, count: 6 },
-    { type: "forest" as const, cx: 4, cy: 10, count: 4 },
-    { type: "stone_deposit" as const, cx: 2, cy: 9, count: 4 },
-    { type: "copper_deposit" as const, cx: 14, cy: 9, count: 4 },
-    { type: "silicon_deposit" as const, cx: 9, cy: 14, count: 4 },
-    { type: "uranium_deposit" as const, cx: 9, cy: 18, count: 3 },
+  if (businessType === "furniture") {
+    const clusters = [
+      { type: "forest" as const, cx: 2, cy: 2, count: 12 },
+      { type: "forest" as const, cx: 8, cy: 8, count: 6 },
+      { type: "stone_deposit" as const, cx: 3, cy: 11, count: 5 },
+      { type: "iron_deposit" as const, cx: 11, cy: 2, count: 1 },
+      { type: "fertile_land" as const, cx: 12, cy: 12, count: 2 },
+    ];
+    clusters.forEach(({ type, cx, cy, count }) => {
+      const size = Math.ceil(Math.sqrt(count));
+      for (let i = 0; i < count; i++) {
+        const x = cx + (i % size);
+        const y = cy + Math.floor(i / size);
+        if (x >= 0 && x < 15 && y >= 0 && y < 15) nodes.push({ x, y, type });
+      }
+    });
+  } else if (businessType === "food") {
+    const clusters = [
+      { type: "fertile_land" as const, cx: 2, cy: 2, count: 14 },
+      { type: "fertile_land" as const, cx: 8, cy: 8, count: 8 },
+      { type: "forest" as const, cx: 2, cy: 12, count: 4 },
+      { type: "stone_deposit" as const, cx: 11, cy: 3, count: 1 },
+      { type: "iron_deposit" as const, cx: 12, cy: 12, count: 1 },
+    ];
+    clusters.forEach(({ type, cx, cy, count }) => {
+      const size = Math.ceil(Math.sqrt(count));
+      for (let i = 0; i < count; i++) {
+        const x = cx + (i % size);
+        const y = cy + Math.floor(i / size);
+        if (x >= 0 && x < 15 && y >= 0 && y < 15) nodes.push({ x, y, type });
+      }
+    });
+  } else if (businessType === "clothing") {
+    const clusters = [
+      { type: "fertile_land" as const, cx: 2, cy: 2, count: 12 },
+      { type: "forest" as const, cx: 10, cy: 2, count: 6 },
+      { type: "stone_deposit" as const, cx: 4, cy: 10, count: 5 },
+    ];
+    clusters.forEach(({ type, cx, cy, count }) => {
+      const size = Math.ceil(Math.sqrt(count));
+      for (let i = 0; i < count; i++) {
+        const x = cx + (i % size);
+        const y = cy + Math.floor(i / size);
+        if (x >= 0 && x < 15 && y >= 0 && y < 15) nodes.push({ x, y, type });
+      }
+    });
+  } else if (businessType === "grocery") {
+    const clusters = [
+      { type: "fertile_land" as const, cx: 3, cy: 3, count: 8 },
+      { type: "forest" as const, cx: 10, cy: 3, count: 6 },
+      { type: "stone_deposit" as const, cx: 5, cy: 10, count: 6 },
+    ];
+    clusters.forEach(({ type, cx, cy, count }) => {
+      const size = Math.ceil(Math.sqrt(count));
+      for (let i = 0; i < count; i++) {
+        const x = cx + (i % size);
+        const y = cy + Math.floor(i / size);
+        if (x >= 0 && x < 15 && y >= 0 && y < 15) nodes.push({ x, y, type });
+      }
+    });
+  } else {
+    const clusters = [
+      { type: "stone_deposit" as const, cx: 2, cy: 2, count: 2 },
+      { type: "forest" as const, cx: 11, cy: 11, count: 2 },
+    ];
+    clusters.forEach(({ type, cx, cy, count }) => {
+      const size = Math.ceil(Math.sqrt(count));
+      for (let i = 0; i < count; i++) {
+        const x = cx + (i % size);
+        const y = cy + Math.floor(i / size);
+        if (x >= 0 && x < 15 && y >= 0 && y < 15) nodes.push({ x, y, type });
+      }
+    });
+  }
+
+  return nodes;
+};
+
+const getAdditionalRegionNodes = (businessType: string) => {
+  const nodes: { x: number; y: number; type: "iron_deposit" | "coal_deposit" | "oil_field" | "limestone_deposit" | "fertile_land" | "forest" | "stone_deposit" | "copper_deposit" | "silicon_deposit" | "uranium_deposit" }[] = [];
+
+  const clusters: { type: "iron_deposit" | "coal_deposit" | "oil_field" | "limestone_deposit" | "fertile_land" | "forest" | "stone_deposit" | "copper_deposit" | "silicon_deposit" | "uranium_deposit"; cx: number; cy: number; count: number }[] = [
+    { type: "coal_deposit", cx: 12, cy: 2, count: 2 },
+    { type: "limestone_deposit", cx: 2, cy: 12, count: 2 },
+    { type: "oil_field", cx: 12, cy: 12, count: 2 },
+    { type: "copper_deposit", cx: 7, cy: 1, count: 2 },
+    { type: "silicon_deposit", cx: 1, cy: 7, count: 2 },
+    { type: "uranium_deposit", cx: 7, cy: 13, count: 1 },
   ];
+
+  if (businessType === "clothing" || businessType === "grocery" || businessType === "clothing_shop" || businessType === "grocery_shop") {
+    clusters.push({ type: "iron_deposit" as const, cx: 10, cy: 6, count: 2 });
+  }
 
   clusters.forEach(({ type, cx, cy, count }) => {
     const size = Math.ceil(Math.sqrt(count));
     for (let i = 0; i < count; i++) {
-      const offsetX = i % size;
-      const offsetY = Math.floor(i / size);
-      const x = cx + offsetX;
-      const y = cy + offsetY;
-      if (x >= 0 && x < 20 && y >= 0 && y < 20) {
+      const x = cx + (i % size);
+      const y = cy + Math.floor(i / size);
+      if (x >= 0 && x < 15 && y >= 0 && y < 15) {
         nodes.push({ x, y, type });
       }
     }
@@ -84,18 +163,18 @@ const generateProceduralDepositNodes = () => {
   return nodes;
 };
 
-const DEFAULT_DEPOSIT_NODES = generateProceduralDepositNodes();
+const DEFAULT_DEPOSIT_NODES = generateRegionDepositNodes("default");
 
 export default function BusinessEmpireGame() {
   // --- Game State ---
   const [gameState, setGameState] = useState<GameState>({
     id: LOCAL_SAVE_ID,
-    money: 5000,
+    money: 25000,
     resources: {
-      iron_ore: 70,
-      stone: 70,
-      mortar: 70,
-      wood: 70,
+      iron_ore: 60,
+      stone: 80,
+      mortar: 40,
+      wood: 80,
     },
     buildings: [],
     companies: [],
@@ -125,6 +204,12 @@ export default function BusinessEmpireGame() {
   const [catalogCategory, setCatalogCategory] = useState<"infrastructure" | "extraction" | "industry" | "commerce">("extraction");
   const [isBuildMenuOpen, setIsBuildMenuOpen] = useState<boolean>(false);
   const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(false);
+
+  // --- Tutorial State ---
+  const [tutorialStep, setTutorialStep] = useState<number>(1);
+  const [tutorialSelectedBusiness, setTutorialSelectedBusiness] = useState<string | null>(null);
+  const [showAdvisor, setShowAdvisor] = useState<boolean>(true);
+  const [hasTriggeredFirstFail, setHasTriggeredFirstFail] = useState<boolean>(false);
   
   // Simulation Ticker Statistics
   const [lastTickStats, setLastTickStats] = useState<{
@@ -149,8 +234,9 @@ export default function BusinessEmpireGame() {
     async function initLoad() {
       const saved = await loadGame(LOCAL_SAVE_ID);
       if (saved) {
-        // Reset deposit nodes to align with new 20x20 layout clusters
-        saved.depositNodes = [...DEFAULT_DEPOSIT_NODES];
+        if (saved.buildings && saved.buildings.length > 0) {
+          setTutorialStep(0);
+        }
         if (!saved.vehicles) {
           saved.vehicles = [];
         }
@@ -160,20 +246,14 @@ export default function BusinessEmpireGame() {
         if (!saved.constructionQueue) {
           saved.constructionQueue = [];
         }
-        // Save-healing: Give bootstrap materials to existing saves to prevent deadlock
         if (!saved.resources) {
           saved.resources = {};
         }
-        saved.resources.iron_ore = Math.max(saved.resources.iron_ore || 0, 70);
-        saved.resources.stone = Math.max(saved.resources.stone || 0, 70);
-        saved.resources.mortar = Math.max(saved.resources.mortar || 0, 70);
-        saved.resources.wood = Math.max(saved.resources.wood || 0, 70);
-        delete saved.resources.cotton; // Remove cotton
-
         setGameState(saved);
         setSaveStatus(isSupabaseConfigured ? "Loaded from Cloud" : "Loaded from local storage");
       } else {
-        setSaveStatus("New V0.5 Game Started");
+        setSaveStatus("New Strategic Region Appointed");
+        setTutorialStep(1);
       }
       setIsMounted(true);
     }
@@ -191,6 +271,23 @@ export default function BusinessEmpireGame() {
           profit: result.profitThisTick,
           logs: result.logs,
         });
+
+        // Check if tutorial buildings finished construction to advance steps naturally
+        if (tutorialStep > 0) {
+          const nextState = result.nextState;
+          const buildings = nextState.buildings || [];
+          const queue = nextState.constructionQueue || [];
+          
+          if (tutorialStep === 2 && buildings.some(b => b.type === "town_hall") && !queue.some(q => buildings.find(bl => bl.id === q.buildingId)?.type === "town_hall")) {
+            setTimeout(() => setTutorialStep(3), 50);
+          } else if (tutorialStep === 6 && buildings.some(b => b.type === "logistics_hq") && !queue.some(q => buildings.find(bl => bl.id === q.buildingId)?.type === "logistics_hq")) {
+            setTimeout(() => setTutorialStep(7), 50);
+          } else if (tutorialStep === 7 && buildings.some(b => b.type === "builder_company") && !queue.some(q => buildings.find(bl => bl.id === q.buildingId)?.type === "builder_company")) {
+            setTimeout(() => setTutorialStep(8), 50);
+          } else if (tutorialStep === 8 && tutorialSelectedBusiness && buildings.some(b => b.type === tutorialSelectedBusiness) && !queue.some(q => buildings.find(bl => bl.id === q.buildingId)?.type === tutorialSelectedBusiness)) {
+            setTimeout(() => setTutorialStep(9), 50);
+          }
+        }
         return result.nextState;
       });
 
@@ -253,7 +350,7 @@ export default function BusinessEmpireGame() {
   };
 
   // --- Helpers for Grid Math ---
-  const gridSize = 20;
+  const gridSize = 15;
 
   // Check if building fits, doesn't overlap, and matches deposit nodes for extractors
   const canPlaceBuilding = (
@@ -420,19 +517,29 @@ export default function BusinessEmpireGame() {
         }
         return;
       }
+      // Tutorial Step 4 Intercept - simulate failure
+      if (tutorialStep === 4) {
+        alert("Construction Failed: Insufficient Construction Materials!\n\nAdvisor: Running a business isn't only about money. Sometimes you simply don't have the required materials. Let's import them.");
+        setTutorialStep(5);
+        setPlacingType(null);
+        return;
+      }
+
+      const isTutorialFree = tutorialStep > 0 && ["town_hall", "trade_center", "logistics_hq", "builder_company", "warehouse"].includes(placingType);
 
       // Normal constructible buildings costing resources
-      const hasResources = 
+      const hasResources = isTutorialFree || (
         gameState.money >= config.baseCost &&
         (gameState.resources.iron_ore || 0) >= (config.baseIronCost || 0) &&
         (gameState.resources.stone || 0) >= (config.baseStoneCost || 0) &&
         (gameState.resources.mortar || 0) >= (config.baseMortarCost || 0) &&
-        (gameState.resources.wood || 0) >= (config.baseWoodCost || 0);
+        (gameState.resources.wood || 0) >= (config.baseWoodCost || 0)
+      );
 
       // V0.5 Builder availability check
       const busyBuilders = gameState.constructionQueue?.length || 0;
       const totalBuilders = 2 + (gameState.buildings.filter(b => b.type === "builder_company" && !(gameState.constructionQueue || []).some(cq => cq.buildingId === b.id)).length);
-      if (busyBuilders >= totalBuilders) {
+      if (!isTutorialFree && busyBuilders >= totalBuilders) {
         alert("All builders are busy! Wait for existing projects to complete.");
         setPlacingType(null);
         return;
@@ -443,6 +550,7 @@ export default function BusinessEmpireGame() {
 
         // Define builder project duration
         const duration = (() => {
+          if (tutorialStep === 2 && placingType === "town_hall") return 300; // 5 mins for tutorialHQ
           if (config.category === "extractor") return 12;
           if (config.category === "factory") return 18;
           if (config.category === "retail") return 8;
@@ -462,14 +570,16 @@ export default function BusinessEmpireGame() {
           if (prev.buildings.some(b => b.id === generatedId)) return prev;
 
           const updatedResources = { ...prev.resources };
-          updatedResources.iron_ore = Math.max(0, (updatedResources.iron_ore || 0) - (config.baseIronCost || 0));
-          updatedResources.stone = Math.max(0, (updatedResources.stone || 0) - (config.baseStoneCost || 0));
-          updatedResources.mortar = Math.max(0, (updatedResources.mortar || 0) - (config.baseMortarCost || 0));
-          updatedResources.wood = Math.max(0, (updatedResources.wood || 0) - (config.baseWoodCost || 0));
+          if (!isTutorialFree) {
+            updatedResources.iron_ore = Math.max(0, (updatedResources.iron_ore || 0) - (config.baseIronCost || 0));
+            updatedResources.stone = Math.max(0, (updatedResources.stone || 0) - (config.baseStoneCost || 0));
+            updatedResources.mortar = Math.max(0, (updatedResources.mortar || 0) - (config.baseMortarCost || 0));
+            updatedResources.wood = Math.max(0, (updatedResources.wood || 0) - (config.baseWoodCost || 0));
+          }
 
           return {
             ...prev,
-            money: prev.money - config.baseCost,
+            money: prev.money - (isTutorialFree ? 0 : config.baseCost),
             resources: updatedResources,
             buildings: [
               ...prev.buildings,
@@ -486,6 +596,12 @@ export default function BusinessEmpireGame() {
             constructionQueue: [...(prev.constructionQueue || []), newProject]
           };
         });
+
+        // Advance tutorial step automatically on placement
+        if (tutorialStep === 9 && config.category === "extractor") {
+          setTutorialStep(10);
+        }
+
         if (placingType.includes("factory")) {
           setPendingFactoryPlacementId(generatedId);
         }
@@ -519,6 +635,81 @@ export default function BusinessEmpireGame() {
 
     setSelectedBuildingId(null);
     setIsInspectorOpen(false);
+  };
+
+  // --- Tutorial Handlers ---
+  const handleSelectTutorialBusiness = (businessType: string) => {
+    setTutorialSelectedBusiness(businessType);
+    setTutorialStep(4);
+    
+    // Generate layout clusters on grid based on chosen business
+    const customNodes = generateRegionDepositNodes(businessType);
+    setGameState(prev => ({
+      ...prev,
+      depositNodes: customNodes,
+      money: 25000,
+      resources: {
+        iron_ore: 60,
+        stone: 80,
+        mortar: 40,
+        wood: 80,
+      }
+    }));
+  };
+
+  const handleTutorialSpeedUp = () => {
+    setGameState(prev => ({
+      ...prev,
+      constructionQueue: []
+    }));
+
+    if (tutorialStep === 2) {
+      setTutorialStep(3);
+    } else if (tutorialStep === 5) {
+      // Allow player to click Import Stock button before advancing step
+    } else if (tutorialStep === 6) {
+      setTutorialStep(7);
+    } else if (tutorialStep === 7) {
+      setTutorialStep(8);
+    } else if (tutorialStep === 8) {
+      setTutorialStep(9);
+    }
+  };
+
+  const handleImportTutorialStock = () => {
+    console.log("IMPORT STOCK CLICKED - current step:", tutorialStep);
+    setGameState(prev => {
+      const updated = { ...prev.resources };
+      updated.wood = (updated.wood || 0) + 80;
+      updated.cement = (updated.cement || 0) + 20;
+      console.log("Resources updated. Wood:", updated.wood, "Cement:", updated.cement);
+      return {
+        ...prev,
+        resources: updated
+      };
+    });
+    console.log("Setting tutorial step to 6");
+    setTutorialStep(6);
+  };
+
+  const handleFinishTutorial = () => {
+    const chosen = tutorialSelectedBusiness || "food_shop";
+    const additional = getAdditionalRegionNodes(chosen);
+    setGameState(prev => {
+      const existing = [...prev.depositNodes];
+      const merged = [...existing];
+      additional.forEach(node => {
+        if (!merged.some(n => n.x === node.x && n.y === node.y)) {
+          merged.push(node);
+        }
+      });
+      return {
+        ...prev,
+        depositNodes: merged
+      };
+    });
+    setTutorialStep(0);
+    setSaveStatus("Tutorial Finished & Map Expanded");
   };
 
   const handleDemolish = (id: string) => {
@@ -560,11 +751,24 @@ export default function BusinessEmpireGame() {
       }
 
       const config = BUILDING_CONFIGS[b.type];
-      const moneyCost = Math.floor(config.baseCost * Math.pow(1.6, b.level));
-      const ironCost = Math.floor((config.baseIronCost || 0) * Math.pow(1.4, b.level));
-      const stoneCost = Math.floor((config.baseStoneCost || 0) * Math.pow(1.4, b.level));
-      const mortarCost = Math.floor((config.baseMortarCost || 0) * Math.pow(1.4, b.level));
-      const woodCost = Math.floor((config.baseWoodCost || 0) * Math.pow(1.4, b.level));
+      const infraCosts = INFRASTRUCTURE_UPGRADE_COSTS[b.type];
+      const nextLevelInfraCost = infraCosts && infraCosts[b.level] ? infraCosts[b.level] : null;
+
+      const moneyCost = nextLevelInfraCost 
+        ? nextLevelInfraCost.money 
+        : Math.floor(config.baseCost * Math.pow(1.6, b.level));
+      const ironCost = nextLevelInfraCost 
+        ? nextLevelInfraCost.iron 
+        : Math.floor((config.baseIronCost || 0) * Math.pow(1.4, b.level));
+      const stoneCost = nextLevelInfraCost 
+        ? nextLevelInfraCost.stone 
+        : Math.floor((config.baseStoneCost || 0) * Math.pow(1.4, b.level));
+      const mortarCost = nextLevelInfraCost 
+        ? nextLevelInfraCost.mortar 
+        : Math.floor((config.baseMortarCost || 0) * Math.pow(1.4, b.level));
+      const woodCost = nextLevelInfraCost 
+        ? nextLevelInfraCost.wood 
+        : Math.floor((config.baseWoodCost || 0) * Math.pow(1.4, b.level));
 
       const hasResources = 
         prev.money >= moneyCost &&
@@ -1156,6 +1360,409 @@ export default function BusinessEmpireGame() {
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 font-sans flex flex-col antialiased">
       
+      {/* Tutorial Advisor Overlay Panel */}
+      {(() => {
+        const showFullOverlay = 
+          tutorialStep === 1 ||
+          tutorialStep === 3 ||
+          tutorialStep === 10 ||
+          (tutorialStep === 2 && gameState.buildings.some(b => b.type === "town_hall")) ||
+          (tutorialStep === 5 && gameState.buildings.some(b => b.type === "trade_center")) ||
+          (tutorialStep === 6 && gameState.buildings.some(b => b.type === "logistics_hq")) ||
+          (tutorialStep === 7 && gameState.buildings.some(b => b.type === "builder_company")) ||
+          (tutorialStep === 8 && gameState.buildings.some(b => b.type === tutorialSelectedBusiness));
+
+        if (tutorialStep > 0 && showAdvisor) {
+          if (showFullOverlay) {
+            return (
+              <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+                <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-2xl w-full max-w-lg space-y-6 shadow-2xl flex flex-col relative animate-in zoom-in-95 duration-200">
+            
+            <div className="flex items-center gap-4 pb-4 border-b border-neutral-800">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/20 shrink-0 text-xl font-extrabold">
+                👴
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-amber-400 uppercase tracking-widest">Government Advisor</h3>
+                <p className="text-[10px] text-neutral-400 font-mono">Strategic Development Advisory</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {/* Step 1 Dialog */}
+              {tutorialStep === 1 && (
+                <>
+                  <p className="text-neutral-200 leading-relaxed text-sm">
+                    "Welcome! You have been appointed to develop this new industrial region. Every successful city begins with proper infrastructure. I'll guide you through building your first company."
+                  </p>
+                  <p className="text-xs text-neutral-400 italic">
+                    Camera focuses on your new empty 15×15 industrial region layout.
+                  </p>
+                  <button
+                    onClick={() => setTutorialStep(2)}
+                    className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-neutral-950 rounded-xl font-black text-xs uppercase tracking-wider transition"
+                  >
+                    Begin Appointed Task
+                  </button>
+                </>
+              )}
+
+              {/* Step 2 Dialog */}
+              {tutorialStep === 2 && (
+                <>
+                  <p className="text-neutral-200 leading-relaxed text-sm">
+                    "Every industrial region needs local administration. Let's construct our <strong>Administrative Headquarters</strong>."
+                  </p>
+                  {gameState.buildings.some(b => b.type === "town_hall") ? (
+                    <div className="space-y-3">
+                      <div className="p-3 bg-neutral-950 border border-neutral-800 rounded-xl text-center text-xs font-mono text-amber-400 animate-pulse">
+                        ⏳ Construction normally takes time. Since this is your first project, let's use a free Speed-Up.
+                      </div>
+                      <button
+                        onClick={handleTutorialSpeedUp}
+                        className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-450 hover:to-teal-450 text-white rounded-xl font-black text-xs uppercase tracking-wider transition"
+                      >
+                        ⚡ Speed Up (Free)
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 text-center">
+                      <p className="text-xs text-neutral-400 italic">
+                        Open the build catalog (click the floating Hammer button) and construct the Administrative Headquarters.
+                      </p>
+                      <button
+                        onClick={() => {
+                          setIsBuildMenuOpen(true);
+                          setCatalogCategory("infrastructure");
+                        }}
+                        className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-neutral-950 rounded-xl font-black text-xs uppercase tracking-wider transition"
+                      >
+                        Open Construction Catalog
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Step 3 Dialog */}
+              {tutorialStep === 3 && (
+                <>
+                  <p className="text-neutral-200 leading-relaxed text-sm">
+                    "Every entrepreneur starts somewhere. Choose your starting industry business category. This decision populates regional resource node clusters."
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => handleSelectTutorialBusiness("furniture_shop")}
+                      className="py-3 bg-neutral-950 hover:bg-neutral-800 border border-neutral-850 hover:border-amber-500 rounded-xl text-xs font-bold transition flex flex-col items-center gap-1.5"
+                    >
+                      <span className="text-2xl">🪵</span>
+                      <span>Furniture Shop</span>
+                      <span className="text-[8px] text-neutral-500 leading-none">High wood, moderate stone</span>
+                    </button>
+                    <button
+                      onClick={() => handleSelectTutorialBusiness("food_shop")}
+                      className="py-3 bg-neutral-950 hover:bg-neutral-800 border border-neutral-850 hover:border-amber-500 rounded-xl text-xs font-bold transition flex flex-col items-center gap-1.5"
+                    >
+                      <span className="text-2xl">🌾</span>
+                      <span>Food Shop</span>
+                      <span className="text-[8px] text-neutral-500 leading-none">High crops, some forest</span>
+                    </button>
+                    <button
+                      onClick={() => handleSelectTutorialBusiness("grocery_shop")}
+                      className="py-3 bg-neutral-950 hover:bg-neutral-800 border border-neutral-850 hover:border-amber-500 rounded-xl text-xs font-bold transition flex flex-col items-center gap-1.5"
+                    >
+                      <span className="text-2xl">🍎</span>
+                      <span>Grocery Shop</span>
+                      <span className="text-[8px] text-neutral-500 leading-none">Balanced farm and stone</span>
+                    </button>
+                    <button
+                      onClick={() => handleSelectTutorialBusiness("clothing_shop")}
+                      className="py-3 bg-neutral-950 hover:bg-neutral-800 border border-neutral-850 hover:border-amber-500 rounded-xl text-xs font-bold transition flex flex-col items-center gap-1.5"
+                    >
+                      <span className="text-2xl">👕</span>
+                      <span>Clothing Shop</span>
+                      <span className="text-[8px] text-neutral-500 leading-none">High cotton farmland</span>
+                    </button>
+                  </div>
+                </>
+              )}
+
+
+              {/* Step 5 Dialog */}
+              {tutorialStep === 5 && (
+                <>
+                  <p className="text-neutral-200 leading-relaxed text-sm">
+                    "Running a business isn't only about money. Sometimes you simply don't have the required construction materials. Let's build our <strong>Import Headquarters</strong> to acquire them."
+                  </p>
+                  {gameState.buildings.some(b => b.type === "trade_center") ? (
+                    <div className="space-y-3">
+                      {!gameState.constructionQueue?.some(q => q.buildingId === gameState.buildings.find(bl => bl.type === "trade_center")?.id) ? (
+                        <div className="space-y-3 p-3 bg-neutral-950 border border-neutral-800 rounded-xl">
+                          <p className="text-neutral-350 text-[11px] leading-normal">
+                            "Imported materials cost more than producing them yourself. They're useful in the beginning but expensive in the long run. Let's import Wood & Cement."
+                          </p>
+                          <button
+                            onClick={handleImportTutorialStock}
+                            className="w-full py-2.5 bg-indigo-650 hover:bg-indigo-600 text-white rounded-lg font-bold text-xs transition"
+                          >
+                            📥 Import Stock (₹500 Cost Bypassed)
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={handleTutorialSpeedUp}
+                          className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-black text-xs uppercase transition"
+                        >
+                          ⚡ Speed Up Project (Free)
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-xs text-neutral-400 italic text-center">
+                        Open build menu infrastructure tab and place Import Headquarters.
+                      </p>
+                      <button
+                        onClick={() => {
+                          setIsBuildMenuOpen(true);
+                          setCatalogCategory("infrastructure");
+                        }}
+                        className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-neutral-950 rounded-xl font-black text-xs uppercase transition"
+                      >
+                        Open Build Menu
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Step 6 Dialog */}
+              {tutorialStep === 6 && (
+                <>
+                  <p className="text-neutral-200 leading-relaxed text-sm">
+                    "Imported goods don't magically arrive. Let's construct a <strong>Logistics Headquarters</strong> to transport resources into your warehouse."
+                  </p>
+                  {gameState.buildings.some(b => b.type === "logistics_hq") ? (
+                    <button
+                      onClick={handleTutorialSpeedUp}
+                      className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-black text-xs uppercase transition"
+                    >
+                      ⚡ Speed Up Project (Free)
+                    </button>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-xs text-neutral-400 italic text-center">
+                        Open build menu infrastructure tab and place Logistics Headquarters.
+                      </p>
+                      <button
+                        onClick={() => {
+                          setIsBuildMenuOpen(true);
+                          setCatalogCategory("infrastructure");
+                        }}
+                        className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-neutral-950 rounded-xl font-black text-xs uppercase transition"
+                      >
+                        Open Build Menu
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Step 7 Dialog */}
+              {tutorialStep === 7 && (
+                <>
+                  <p className="text-neutral-200 leading-relaxed text-sm">
+                    "Every construction project is managed by your <strong>Builder Company</strong>. Let's construct it now."
+                  </p>
+                  {gameState.buildings.some(b => b.type === "builder_company") ? (
+                    <button
+                      onClick={handleTutorialSpeedUp}
+                      className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-black text-xs uppercase transition"
+                    >
+                      ⚡ Speed Up Project (Free)
+                    </button>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-xs text-neutral-400 italic text-center">
+                        Open build menu infrastructure tab and place Builder Company.
+                      </p>
+                      <button
+                        onClick={() => {
+                          setIsBuildMenuOpen(true);
+                          setCatalogCategory("infrastructure");
+                        }}
+                        className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-neutral-950 rounded-xl font-black text-xs uppercase transition"
+                      >
+                        Open Build Menu
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Step 8 Dialog */}
+              {tutorialStep === 8 && (
+                <>
+                  <p className="text-neutral-200 leading-relaxed text-sm">
+                    "Now that we have both the materials and the builders, place your first business shop on the grid again!"
+                  </p>
+                  {gameState.buildings.some(b => b.type === tutorialSelectedBusiness) ? (
+                    <button
+                      onClick={handleTutorialSpeedUp}
+                      className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-black text-xs uppercase transition"
+                    >
+                      ⚡ Speed Up Project (Free)
+                    </button>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-xs text-neutral-400 italic text-center">
+                        Open build menu commerce tab and place your shop.
+                      </p>
+                      <button
+                        onClick={() => {
+                          setIsBuildMenuOpen(true);
+                          setCatalogCategory("commerce");
+                        }}
+                        className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-neutral-950 rounded-xl font-black text-xs uppercase transition"
+                      >
+                        Open Build Menu
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+
+
+              {/* Step 10 Dialog */}
+              {tutorialStep === 10 && (
+                <>
+                  <p className="text-neutral-200 leading-relaxed text-sm font-bold text-center">
+                    🎉 Tutorial Complete!
+                  </p>
+                  <p className="text-neutral-400 text-xs leading-normal">
+                    You have successfully established the strategic flow of materials and products:
+                  </p>
+                  <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-850 font-mono text-[9px] text-amber-400 space-y-1">
+                    <div>Resource Extraction</div>
+                    <div className="text-neutral-600 pl-4">↓</div>
+                    <div>Logistics Transports</div>
+                    <div className="text-neutral-600 pl-4">↓</div>
+                    <div>Warehouse Inventory</div>
+                    <div className="text-neutral-600 pl-4">↓</div>
+                    <div>Factories Processing</div>
+                    <div className="text-neutral-600 pl-4">↓</div>
+                    <div>Retail Sales Stores</div>
+                    <div className="text-neutral-600 pl-4">↓</div>
+                    <div>Customers Purchase</div>
+                    <div className="text-neutral-600 pl-4">↓</div>
+                    <div>Regional Profit Wallet</div>
+                    <div className="text-neutral-600 pl-4">↓</div>
+                    <div>Expansion Opportunities</div>
+                  </div>
+                  <button
+                    onClick={handleFinishTutorial}
+                    className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-neutral-950 font-black text-xs uppercase tracking-wider transition rounded-xl"
+                  >
+                    Finish Tutorial & Begin Simulation
+                  </button>
+                </>
+              )}
+            </div>
+
+            <div className="pt-2 text-center">
+              <button
+                onClick={() => {
+                  if (window.confirm("Skip tutorial? You will start with the default region layout and full access to the game.")) {
+                    setTutorialStep(0);
+                    setGameState(prev => ({
+                      ...prev,
+                      depositNodes: generateRegionDepositNodes("food"),
+                      money: 25000,
+                      resources: {
+                        iron_ore: 60,
+                        stone: 80,
+                        mortar: 40,
+                        wood: 80
+                      }
+                    }));
+                  }
+                }}
+                className="text-[10px] text-neutral-500 hover:text-neutral-400 transition font-mono uppercase font-bold"
+              >
+                Skip Tutorial
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    } else {
+        return (
+          <div className="fixed bottom-6 left-6 z-50 bg-neutral-900 border-2 border-amber-500/80 p-5 rounded-2xl shadow-2xl w-full max-w-sm flex flex-col space-y-4 animate-in slide-in-from-bottom-5 duration-200">
+            <div className="flex items-center gap-3 pb-3 border-b border-neutral-850">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center shadow-lg text-lg shrink-0">
+                👴
+              </div>
+              <div>
+                <h3 className="text-xs font-black text-amber-400 uppercase tracking-widest">Government Advisor</h3>
+                <p className="text-[9px] text-neutral-500 font-mono">Active Placement Phase</p>
+              </div>
+            </div>
+            
+            <div className="text-xs text-neutral-200 leading-relaxed font-sans">
+              {tutorialStep === 2 && "Every industrial region needs local administration. Let's construct our Administrative Headquarters."}
+              {tutorialStep === 4 && `Now place your chosen retail business shop on the grid.`}
+              {tutorialStep === 5 && "Running a business isn't only about money. Sometimes you don't have the required materials. Let's build our Import Headquarters."}
+              {tutorialStep === 6 && "Imported goods don't magically arrive. Let's construct a Logistics Headquarters to transport resources."}
+              {tutorialStep === 7 && "Every construction project is managed by your Builder Company. Let's construct it now."}
+              {tutorialStep === 8 && "Now that we have both the materials and the builders, place your first business shop on the grid again!"}
+              {tutorialStep === 9 && "Imports are useful, but successful companies eventually produce their own materials. Let's construct a Lumber Mill on a Forest node."}
+            </div>
+
+            <div className="pt-2 flex gap-2">
+              <button
+                onClick={() => {
+                  setIsBuildMenuOpen(true);
+                  if (tutorialStep === 2 || tutorialStep === 5 || tutorialStep === 6 || tutorialStep === 7) {
+                    setCatalogCategory("infrastructure");
+                  } else if (tutorialStep === 4 || tutorialStep === 8) {
+                    setCatalogCategory("commerce");
+                  } else if (tutorialStep === 9) {
+                    setCatalogCategory("extraction");
+                  }
+                }}
+                className="flex-1 py-2 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-black text-[10px] uppercase tracking-wider rounded-xl transition text-center"
+              >
+                Open Build Catalog
+              </button>
+              <button
+                onClick={() => {
+                  if (window.confirm("Skip tutorial? You will start with the default region layout and full access to the game.")) {
+                    setTutorialStep(0);
+                    setGameState(prev => ({
+                      ...prev,
+                      depositNodes: generateRegionDepositNodes("food"),
+                      money: 25000,
+                      resources: {
+                        iron_ore: 60,
+                        stone: 80,
+                        mortar: 40,
+                        wood: 80
+                      }
+                    }));
+                  }
+                }}
+                className="px-3 py-2 bg-neutral-850 hover:bg-neutral-800 text-neutral-400 rounded-xl text-[9px] uppercase tracking-wider transition font-mono font-bold"
+              >
+                Skip
+              </button>
+            </div>
+          </div>
+        );
+      }
+    }
+    return null;
+  })()}
+      
       {/* HEADER */}
       <header className="border-b border-neutral-800 bg-neutral-900/80 backdrop-blur sticky top-0 z-50 px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -1575,6 +2182,7 @@ export default function BusinessEmpireGame() {
                     <div className="flex-1 overflow-y-auto pr-1 space-y-3 scrollbar-thin">
                       {/* V0.5 Road Building Option (Infra tab only) */}
                       {catalogCategory === "infrastructure" && (() => {
+                        if (tutorialStep > 0) return null;
                         const isPlacing = placingType === "road";
                         const hasResources = 
                           gameState.money >= 10 &&
@@ -1618,8 +2226,24 @@ export default function BusinessEmpireGame() {
                       })()}
 
                       {Object.entries(BUILDING_CONFIGS)
-                        .filter(([_, config]) => {
+                        .filter(([key, config]) => {
                           if (config.category === "hq") return false;
+
+                          // Tutorial step restrictions
+                          if (tutorialStep > 0) {
+                            if (tutorialStep === 2) return key === "town_hall";
+                            if (tutorialStep === 4) return key === tutorialSelectedBusiness;
+                            if (tutorialStep === 5) return key === "trade_center";
+                            if (tutorialStep === 6) return key === "logistics_hq";
+                            if (tutorialStep === 7) return key === "builder_company";
+                            if (tutorialStep === 8) return key === tutorialSelectedBusiness;
+                            if (tutorialStep === 9) return key === "lumber_mill";
+                            return false;
+                          }
+
+                          // Hide permanent core infrastructure after tutorial is complete
+                          const isInfrastructurePermanent = ["town_hall", "trade_center", "logistics_hq", "builder_company", "warehouse"].includes(key);
+                          if (isInfrastructurePermanent) return false;
                           
                           let mappedCategory = "";
                           if (config.category === "extractor") mappedCategory = "extraction";
@@ -2077,11 +2701,24 @@ export default function BusinessEmpireGame() {
                         <div className="space-y-2 pt-1 font-sans">
                           {/* Level Up grade action */}
                           {!selectedInfo.isCompany ? (() => {
-                            const upgradeMoneyCost = Math.floor(selectedInfo.config.baseCost * Math.pow(1.6, bObj.level));
-                            const upgradeIronCost = Math.floor((selectedInfo.config.baseIronCost || 0) * Math.pow(1.4, bObj.level));
-                            const upgradestoneCost = Math.floor((selectedInfo.config.baseStoneCost || 0) * Math.pow(1.4, bObj.level));
-                            const upgradeMortarCost = Math.floor((selectedInfo.config.baseMortarCost || 0) * Math.pow(1.4, bObj.level));
-                            const upgradeWoodCost = Math.floor((selectedInfo.config.baseWoodCost || 0) * Math.pow(1.4, bObj.level));
+                            const infraCosts = INFRASTRUCTURE_UPGRADE_COSTS[bObj.type];
+                            const nextLevelInfraCost = infraCosts && infraCosts[bObj.level] ? infraCosts[bObj.level] : null;
+
+                            const upgradeMoneyCost = nextLevelInfraCost 
+                              ? nextLevelInfraCost.money 
+                              : Math.floor(selectedInfo.config.baseCost * Math.pow(1.6, bObj.level));
+                            const upgradeIronCost = nextLevelInfraCost 
+                              ? nextLevelInfraCost.iron 
+                              : Math.floor((selectedInfo.config.baseIronCost || 0) * Math.pow(1.4, bObj.level));
+                            const upgradestoneCost = nextLevelInfraCost 
+                              ? nextLevelInfraCost.stone 
+                              : Math.floor((selectedInfo.config.baseStoneCost || 0) * Math.pow(1.4, bObj.level));
+                            const upgradeMortarCost = nextLevelInfraCost 
+                              ? nextLevelInfraCost.mortar 
+                              : Math.floor((selectedInfo.config.baseMortarCost || 0) * Math.pow(1.4, bObj.level));
+                            const upgradeWoodCost = nextLevelInfraCost 
+                              ? nextLevelInfraCost.wood 
+                              : Math.floor((selectedInfo.config.baseWoodCost || 0) * Math.pow(1.4, bObj.level));
 
                             const hasResourcesToUpgrade = 
                               gameState.money >= upgradeMoneyCost &&
