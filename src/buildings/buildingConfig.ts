@@ -109,7 +109,7 @@ export const FACTORY_RECIPES: Record<string, FactoryRecipe> = {
 export interface BuildingConfig {
   id: string;
   name: string;
-  category: "extractor" | "factory" | "retail" | "service" | "warehouse" | "logistics" | "bank" | "tourism" | "hq";
+  category: "extractor" | "factory" | "retail" | "service" | "warehouse" | "logistics" | "bank" | "tourism" | "hq" | "infrastructure";
   width: number;
   height: number;
   baseCost: number; // Money cost
@@ -483,6 +483,66 @@ export const BUILDING_CONFIGS: Record<string, BuildingConfig> = {
   },
 
   // Infrastructure & Utilities
+  town_hall: {
+    id: "town_hall",
+    name: "Administrative Town Hall",
+    category: "infrastructure",
+    width: 2,
+    height: 2,
+    baseCost: 2000,
+    baseIronCost: 40,
+    baseLimestoneCost: 30,
+    baseMortarCost: 20,
+    baseWoodCost: 50,
+    baseMaintenance: 18,
+    description: "Regional office. Requires 40 Iron, 30 Lime, 20 Mortar, 50 Wood. Unlocks policies and boosts regional metrics.",
+    color: "bg-indigo-900 border border-indigo-400",
+  },
+  builder_company: {
+    id: "builder_company",
+    name: "Builder Company HQ",
+    category: "infrastructure",
+    width: 2,
+    height: 2,
+    baseCost: 1500,
+    baseIronCost: 30,
+    baseLimestoneCost: 20,
+    baseMortarCost: 10,
+    baseWoodCost: 40,
+    baseMaintenance: 14,
+    description: "Crews headquarters. Requires 30 Iron, 20 Lime, 10 Mortar, 40 Wood. Boosts active construction crews limits.",
+    color: "bg-sky-850 border border-sky-400",
+  },
+  trade_center: {
+    id: "trade_center",
+    name: "International Trade Center",
+    category: "infrastructure",
+    width: 2,
+    height: 2,
+    baseCost: 1200,
+    baseIronCost: 20,
+    baseLimestoneCost: 25,
+    baseMortarCost: 15,
+    baseWoodCost: 30,
+    baseMaintenance: 12,
+    description: "Global contracts hub. Requires 20 Iron, 25 Lime, 15 Mortar, 30 Wood. Replaces raw import menus.",
+    color: "bg-emerald-950 border border-emerald-500",
+  },
+  logistics_hq: {
+    id: "logistics_hq",
+    name: "Logistics HQ Operations",
+    category: "infrastructure",
+    width: 2,
+    height: 2,
+    baseCost: 1800,
+    baseIronCost: 35,
+    baseLimestoneCost: 30,
+    baseMortarCost: 20,
+    baseWoodCost: 35,
+    baseMaintenance: 16,
+    description: "Logistics control tower. Requires 35 Iron, 30 Lime, 20 Mortar, 35 Wood. Unlocks fleet upgrades and optimization.",
+    color: "bg-purple-950 border border-purple-500",
+  },
   warehouse: {
     id: "warehouse",
     name: "Warehouse",

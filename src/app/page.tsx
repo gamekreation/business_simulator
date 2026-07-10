@@ -43,33 +43,49 @@ import { GameState, saveGame, loadGame, isSupabaseConfigured } from "../database
 
 const LOCAL_SAVE_ID = "proto_player_v0_2";
 
-// Helper to pre-populate fixed natural resource nodes on the 10x10 grid
-const DEFAULT_DEPOSIT_NODES = [
-  { x: 1, y: 1, type: "iron_deposit" },
-  { x: 2, y: 1, type: "iron_deposit" },
-  { x: 8, y: 2, type: "coal_deposit" },
-  { x: 8, y: 3, type: "coal_deposit" },
-  { x: 4, y: 5, type: "fertile_land" },
-  { x: 5, y: 5, type: "fertile_land" },
-  { x: 1, y: 7, type: "limestone_deposit" },
-  { x: 2, y: 8, type: "limestone_deposit" },
-  { x: 7, y: 8, type: "oil_field" },
-  { x: 8, y: 8, type: "oil_field" },
-  { x: 4, y: 2, type: "forest" },
-  { x: 5, y: 2, type: "forest" },
-] as const;
+// Helper to pre-populate fixed natural resource nodes on the 20x20 grid procedurally
+const generateProceduralDepositNodes = () => {
+  const nodes: { x: number; y: number; type: "iron_deposit" | "coal_deposit" | "oil_field" | "limestone_deposit" | "fertile_land" | "forest" }[] = [];
+  
+  // Seed resource clusters across 20x20 map
+  const clusters = [
+    { type: "iron_deposit" as const, cx: 2, cy: 2, count: 4 },
+    { type: "coal_deposit" as const, cx: 15, cy: 2, count: 4 },
+    { type: "limestone_deposit" as const, cx: 2, cy: 15, count: 4 },
+    { type: "oil_field" as const, cx: 15, cy: 15, count: 4 },
+    { type: "fertile_land" as const, cx: 8, cy: 8, count: 9 },
+    { type: "forest" as const, cx: 9, cy: 3, count: 6 },
+    { type: "forest" as const, cx: 4, cy: 10, count: 4 },
+  ];
+
+  clusters.forEach(({ type, cx, cy, count }) => {
+    const size = Math.ceil(Math.sqrt(count));
+    for (let i = 0; i < count; i++) {
+      const offsetX = i % size;
+      const offsetY = Math.floor(i / size);
+      const x = cx + offsetX;
+      const y = cy + offsetY;
+      if (x >= 0 && x < 20 && y >= 0 && y < 20) {
+        nodes.push({ x, y, type });
+      }
+    }
+  });
+
+  return nodes;
+};
+
+const DEFAULT_DEPOSIT_NODES = generateProceduralDepositNodes();
 
 export default function BusinessEmpireGame() {
   // --- Game State ---
   const [gameState, setGameState] = useState<GameState>({
     id: LOCAL_SAVE_ID,
-    money: 6000,
+    money: 5000,
     resources: {
-      iron_ore: 100,
-      limestone: 100,
-      mortar: 100,
-      wood: 100,
-      cotton: 20,
+      iron_ore: 70,
+      limestone: 70,
+      mortar: 70,
+      wood: 70,
     },
     buildings: [],
     companies: [],
@@ -81,6 +97,9 @@ export default function BusinessEmpireGame() {
     unlocked_land: 100,
     depositNodes: [...DEFAULT_DEPOSIT_NODES],
     vehicles: [],
+    buildersCount: 2,
+    constructionQueue: [],
+    roads: [],
   });
 
   // --- UI State ---
@@ -93,6 +112,7 @@ export default function BusinessEmpireGame() {
   const [hoverTile, setHoverTile] = useState<{ x: number; y: number } | null>(null);
   const [mergerQualityScore, setMergerQualityScore] = useState<number | null>(null);
   const [pendingFactoryPlacementId, setPendingFactoryPlacementId] = useState<string | null>(null);
+  const [catalogCategory, setCatalogCategory] = useState<"infrastructure" | "extraction" | "industry" | "commerce">("extraction");
   
   // Simulation Ticker Statistics
   const [lastTickStats, setLastTickStats] = useState<{
@@ -110,34 +130,40 @@ export default function BusinessEmpireGame() {
   // Saving Notification
   const [saveStatus, setSaveStatus] = useState<string>("Synced locally");
   const [autoSaveTimer, setAutoSaveTimer] = useState<number>(30);
+  const [isMounted, setIsMounted] = useState(false);
 
   // --- Load Game on Mount ---
   useEffect(() => {
     async function initLoad() {
       const saved = await loadGame(LOCAL_SAVE_ID);
       if (saved) {
-        // Ensure new V0.2 fields exist
-        if (!saved.depositNodes || saved.depositNodes.length === 0) {
-          saved.depositNodes = [...DEFAULT_DEPOSIT_NODES];
-        }
+        // Reset deposit nodes to align with new 20x20 layout clusters
+        saved.depositNodes = [...DEFAULT_DEPOSIT_NODES];
         if (!saved.vehicles) {
           saved.vehicles = [];
+        }
+        if (!saved.roads) {
+          saved.roads = [];
+        }
+        if (!saved.constructionQueue) {
+          saved.constructionQueue = [];
         }
         // Save-healing: Give bootstrap materials to existing saves to prevent deadlock
         if (!saved.resources) {
           saved.resources = {};
         }
-        saved.resources.iron_ore = Math.max(saved.resources.iron_ore || 0, 100);
-        saved.resources.limestone = Math.max(saved.resources.limestone || 0, 100);
-        saved.resources.mortar = Math.max(saved.resources.mortar || 0, 100);
-        saved.resources.wood = Math.max(saved.resources.wood || 0, 100);
-        saved.resources.cotton = Math.max(saved.resources.cotton || 0, 20);
+        saved.resources.iron_ore = Math.max(saved.resources.iron_ore || 0, 70);
+        saved.resources.limestone = Math.max(saved.resources.limestone || 0, 70);
+        saved.resources.mortar = Math.max(saved.resources.mortar || 0, 70);
+        saved.resources.wood = Math.max(saved.resources.wood || 0, 70);
+        delete saved.resources.cotton; // Remove cotton
 
         setGameState(saved);
         setSaveStatus(isSupabaseConfigured ? "Loaded from Cloud" : "Loaded from local storage");
       } else {
-        setSaveStatus("New V0.2 Game Started");
+        setSaveStatus("New V0.5 Game Started");
       }
+      setIsMounted(true);
     }
     initLoad();
   }, []);
@@ -186,13 +212,12 @@ export default function BusinessEmpireGame() {
     if (window.confirm("Are you sure you want to completely reset your game progress? All V0.2 infrastructure will be wiped.")) {
       const resetState: GameState = {
         id: LOCAL_SAVE_ID,
-        money: 6000,
+        money: 5000,
         resources: {
-          iron_ore: 100,
-          limestone: 100,
-          mortar: 100,
-          wood: 100,
-          cotton: 20,
+          iron_ore: 70,
+          limestone: 70,
+          mortar: 70,
+          wood: 70,
         },
         buildings: [],
         companies: [],
@@ -204,6 +229,9 @@ export default function BusinessEmpireGame() {
         unlocked_land: 100,
         depositNodes: [...DEFAULT_DEPOSIT_NODES],
         vehicles: [],
+        buildersCount: 2,
+        constructionQueue: [],
+        roads: [],
       };
       setGameState(resetState);
       localStorage.removeItem("business_empire_save");
@@ -213,7 +241,7 @@ export default function BusinessEmpireGame() {
   };
 
   // --- Helpers for Grid Math ---
-  const gridSize = 10;
+  const gridSize = 20;
 
   // Check if building fits, doesn't overlap, and matches deposit nodes for extractors
   const canPlaceBuilding = (
@@ -222,12 +250,33 @@ export default function BusinessEmpireGame() {
     y: number, 
     excludeId: string | null = null
   ): boolean => {
+    // V0.5 Road placement checks
+    if (type === "road") {
+      if (x < 0 || y < 0 || x >= gridSize || y >= gridSize) return false;
+      const isOccupied = 
+        (gameState.roads || []).some(r => r.x === x && r.y === y) || 
+        gameState.buildings.some(b => {
+          const config = BUILDING_CONFIGS[b.type];
+          return config && x >= b.x && x < b.x + config.width && y >= b.y && y < b.y + config.height;
+        });
+      return !isOccupied;
+    }
+
     const config = BUILDING_CONFIGS[type];
     if (!config) return false;
 
     // 1. Boundary check
     if (x < 0 || y < 0 || x + config.width > gridSize || y + config.height > gridSize) {
       return false;
+    }
+
+    // V0.5 Roads overlap check (cannot place buildings on top of roads)
+    for (let dy = 0; dy < config.height; dy++) {
+      for (let dx = 0; dx < config.width; dx++) {
+        if ((gameState.roads || []).some(r => r.x === x + dx && r.y === y + dy)) {
+          return false;
+        }
+      }
     }
 
     // 2. Deposit Node requirements for Extractors
@@ -296,6 +345,37 @@ export default function BusinessEmpireGame() {
     }
 
     if (placingType) {
+      // V0.5 Road Placement Logic
+      if (placingType === "road") {
+        const hasRoadResources = 
+          gameState.money >= 10 &&
+          (gameState.resources.limestone || 0) >= 1 &&
+          (gameState.resources.wood || 0) >= 1;
+
+        const isRoadOccupied = 
+          (gameState.roads || []).some(r => r.x === x && r.y === y) || 
+          gameState.buildings.some(b => {
+            const config = BUILDING_CONFIGS[b.type];
+            return config && x >= b.x && x < b.x + config.width && y >= b.y && y < b.y + config.height;
+          });
+
+        if (hasRoadResources && !isRoadOccupied) {
+          setGameState(prev => {
+            const updatedResources = { ...prev.resources };
+            updatedResources.limestone = Math.max(0, (updatedResources.limestone || 0) - 1);
+            updatedResources.wood = Math.max(0, (updatedResources.wood || 0) - 1);
+
+            return {
+              ...prev,
+              money: prev.money - 10,
+              resources: updatedResources,
+              roads: [...(prev.roads || []), { x, y }]
+            };
+          });
+        }
+        return;
+      }
+
       const config = BUILDING_CONFIGS[placingType];
       if (!config) return;
 
@@ -341,8 +421,35 @@ export default function BusinessEmpireGame() {
         (gameState.resources.mortar || 0) >= (config.baseMortarCost || 0) &&
         (gameState.resources.wood || 0) >= (config.baseWoodCost || 0);
 
+      // V0.5 Builder availability check
+      const busyBuilders = gameState.constructionQueue?.length || 0;
+      const totalBuilders = 2 + (gameState.buildings.filter(b => b.type === "builder_company" && !(gameState.constructionQueue || []).some(cq => cq.buildingId === b.id)).length);
+      if (busyBuilders >= totalBuilders) {
+        alert("All builders are busy! Wait for existing projects to complete.");
+        setPlacingType(null);
+        return;
+      }
+
       if (hasResources && canPlaceBuilding(placingType, x, y)) {
         const generatedId = `build-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+        // Define builder project duration
+        const duration = (() => {
+          if (config.category === "extractor") return 12;
+          if (config.category === "factory") return 18;
+          if (config.category === "retail") return 8;
+          if (config.category === "service") return 14;
+          return 10;
+        })();
+
+        const newProject = {
+          id: `proj-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          buildingId: generatedId,
+          type: "construct" as const,
+          timeRemaining: duration,
+          totalTime: duration
+        };
+
         setGameState(prev => {
           if (prev.buildings.some(b => b.id === generatedId)) return prev;
 
@@ -367,7 +474,8 @@ export default function BusinessEmpireGame() {
                 progressionLevel: 1, // Default Shop/Office
                 recipeId: placingType.includes("factory") ? "" : undefined,
               }
-            ]
+            ],
+            constructionQueue: [...(prev.constructionQueue || []), newProject]
           };
         });
         if (placingType.includes("factory")) {
@@ -420,9 +528,25 @@ export default function BusinessEmpireGame() {
   };
 
   const handleUpgradeBuilding = (id: string) => {
+    // V0.5 Builder availability check
+    const busyBuilders = gameState.constructionQueue?.length || 0;
+    const totalBuilders = 2 + (gameState.buildings.filter(b => b.type === "builder_company" && !(gameState.constructionQueue || []).some(cq => cq.buildingId === b.id)).length);
+    if (busyBuilders >= totalBuilders) {
+      alert("👷 All builders are busy! Wait for existing projects to complete.");
+      return;
+    }
+
     setGameState(prev => {
       const b = prev.buildings.find(item => item.id === id);
       if (!b) return prev;
+
+      // Ensure building is not already in upgrade/construction queue
+      const isBusy = (prev.constructionQueue || []).some(cq => cq.buildingId === id);
+      if (isBusy) {
+        alert("👷 Building is already under construction or upgrade!");
+        return prev;
+      }
+
       const config = BUILDING_CONFIGS[b.type];
       const moneyCost = Math.floor(config.baseCost * Math.pow(1.6, b.level));
       const ironCost = Math.floor((config.baseIronCost || 0) * Math.pow(1.4, b.level));
@@ -444,13 +568,28 @@ export default function BusinessEmpireGame() {
         updatedResources.mortar = Math.max(0, (updatedResources.mortar || 0) - mortarCost);
         updatedResources.wood = Math.max(0, (updatedResources.wood || 0) - woodCost);
 
+        const baseDuration = (() => {
+          if (config.category === "extractor") return 12;
+          if (config.category === "factory") return 18;
+          if (config.category === "retail") return 8;
+          if (config.category === "service") return 14;
+          return 10;
+        })();
+        const duration = baseDuration * b.level;
+
+        const newProject = {
+          id: `proj-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          buildingId: id,
+          type: "upgrade" as const,
+          timeRemaining: duration,
+          totalTime: duration
+        };
+
         return {
           ...prev,
           money: prev.money - moneyCost,
           resources: updatedResources,
-          buildings: prev.buildings.map(item => 
-            item.id === id ? { ...item, level: item.level + 1 } : item
-          )
+          constructionQueue: [...(prev.constructionQueue || []), newProject]
         };
       }
       return prev;
@@ -953,10 +1092,19 @@ export default function BusinessEmpireGame() {
     return sum + (qty * (resConfig?.volume || 0));
   }, 0);
 
-  const totalWarehouseCapacity = 200 + gameState.buildings.filter(b => b.type === "warehouse").reduce((sum, b) => {
+  const totalWarehouseCapacity = 1600 + gameState.buildings.filter(b => b.type === "warehouse").reduce((sum, b) => {
     const levelMult = 1 + (b.level - 1) * 0.6;
     return sum + (BUILDING_CONFIGS.warehouse.baseCapacity || 1000) * levelMult;
   }, 0);
+
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center text-xs font-mono text-neutral-500 space-y-2">
+        <div className="h-5 w-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+        <span>Initializing RTS Logistics Simulator...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 font-sans flex flex-col antialiased">
@@ -1022,6 +1170,24 @@ export default function BusinessEmpireGame() {
             </span>
             <span className="text-[10px] text-neutral-500 font-medium">Wood</span>
           </div>
+
+          <div className="h-6 w-[1px] bg-neutral-800" />
+
+          {/* V0.5 Builders HUD indicator */}
+          {(() => {
+            const busy = gameState.constructionQueue?.length || 0;
+            const total = 2 + (gameState.buildings.filter(b => b.type === "builder_company" && !(gameState.constructionQueue || []).some(cq => cq.buildingId === b.id)).length);
+            const free = total - busy;
+            return (
+              <div className="flex items-center gap-2" title="Builders Status">
+                <Wrench className="h-4 w-4 text-sky-400" />
+                <span className="text-sm font-bold font-mono text-sky-200">
+                  {free} / {total}
+                </span>
+                <span className="text-[10px] text-neutral-500 font-medium">Builders</span>
+              </div>
+            );
+          })()}
 
           <div className="h-6 w-[1px] bg-neutral-800" />
 
@@ -1124,19 +1290,101 @@ export default function BusinessEmpireGame() {
                 <Store className="h-4 w-4 text-amber-500" />
                 Construction Catalog
               </h2>
-
-              <div className="flex bg-neutral-950 p-1 rounded-xl border border-neutral-800/80 mb-4 text-xs font-medium">
+              <div className="grid grid-cols-4 gap-1 bg-neutral-950 p-1 rounded-xl border border-neutral-850 mb-4 text-[9px] font-bold text-center">
                 <button
-                  onClick={() => setPlacingType(null)}
-                  className={`flex-1 py-1.5 text-center rounded-lg transition ${!placingType ? "bg-neutral-850 text-white" : "text-neutral-400 hover:text-neutral-200"}`}
+                  onClick={() => setCatalogCategory("infrastructure")}
+                  className={`py-1.5 rounded-lg transition uppercase ${catalogCategory === "infrastructure" ? "bg-indigo-900/60 text-white font-extrabold" : "text-neutral-400 hover:text-neutral-200"}`}
                 >
-                  Buildings Shop
+                  Infra
+                </button>
+                <button
+                  onClick={() => setCatalogCategory("extraction")}
+                  className={`py-1.5 rounded-lg transition uppercase ${catalogCategory === "extraction" ? "bg-amber-900/60 text-white font-extrabold" : "text-neutral-400 hover:text-neutral-200"}`}
+                >
+                  Extract
+                </button>
+                <button
+                  onClick={() => setCatalogCategory("industry")}
+                  className={`py-1.5 rounded-lg transition uppercase ${catalogCategory === "industry" ? "bg-orange-850/60 text-white font-extrabold" : "text-neutral-400 hover:text-neutral-200"}`}
+                >
+                  Factory
+                </button>
+                <button
+                  onClick={() => setCatalogCategory("commerce")}
+                  className={`py-1.5 rounded-lg transition uppercase ${catalogCategory === "commerce" ? "bg-emerald-850/60 text-white font-extrabold" : "text-neutral-400 hover:text-neutral-200"}`}
+                >
+                  Retail
                 </button>
               </div>
 
               <div className="flex flex-col gap-2.5 max-h-[350px] overflow-y-auto pr-1">
+                {/* V0.5 Road Building Option (Infra tab only) */}
+                {catalogCategory === "infrastructure" && (() => {
+                  const isPlacing = placingType === "road";
+                  const hasResources = 
+                    gameState.money >= 10 &&
+                    (gameState.resources.limestone || 0) >= 1 &&
+                    (gameState.resources.wood || 0) >= 1;
+                  return (
+                    <div 
+                      className={`p-3 rounded-xl border transition-all flex items-center justify-between ${
+                        isPlacing 
+                          ? "bg-amber-500/10 border-amber-500" 
+                          : "bg-neutral-950/40 border-neutral-800 hover:border-neutral-700"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-3.5 h-3.5 rounded shrink-0 bg-neutral-700 border border-neutral-500" />
+                        <div>
+                          <div className="text-xs font-bold flex items-center gap-1.5">
+                            Transit Road
+                            <span className="text-[9px] text-neutral-500 font-mono">(1x1)</span>
+                          </div>
+                          <p className="text-[10px] text-neutral-450 mt-0.5 leading-normal max-w-[200px]">
+                            Lays a road tile. Connects structures. Adds +0.5% hauling speed multiplier per tile.
+                          </p>
+                          <div className="flex gap-2 mt-1 font-mono text-[9px]">
+                            <span className={gameState.money >= 10 ? "text-emerald-400" : "text-rose-400 font-bold"}>$10</span>
+                            <span className={(gameState.resources.limestone || 0) >= 1 ? "text-stone-400" : "text-rose-400 font-bold"}>1 Lime</span>
+                            <span className={(gameState.resources.wood || 0) >= 1 ? "text-green-400" : "text-rose-400 font-bold"}>1 Wood</span>
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (isPlacing) setPlacingType(null);
+                          else {
+                            setPlacingType("road");
+                            setMovingBuildingId(null);
+                          }
+                        }}
+                        disabled={!hasResources && !isPlacing}
+                        className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold font-mono transition shrink-0 ${
+                          isPlacing 
+                            ? "bg-amber-500 text-neutral-950" 
+                            : hasResources 
+                              ? "bg-neutral-850 hover:bg-neutral-750 text-white" 
+                              : "bg-neutral-900 text-neutral-655 cursor-not-allowed"
+                        }`}
+                      >
+                        {isPlacing ? "Placing..." : "Build"}
+                      </button>
+                    </div>
+                  );
+                })()}
+
                 {Object.entries(BUILDING_CONFIGS)
-                  .filter(([_, config]) => config.category !== "hq")
+                  .filter(([_, config]) => {
+                    if (config.category === "hq") return false;
+                    
+                    let mappedCategory = "";
+                    if (config.category === "extractor") mappedCategory = "extraction";
+                    else if (config.category === "factory") mappedCategory = "industry";
+                    else if (config.category === "retail" || config.category === "service") mappedCategory = "commerce";
+                    else mappedCategory = "infrastructure"; // warehouse, logistics, bank, tourism, infrastructure
+
+                    return mappedCategory === catalogCategory;
+                  })
                   .map(([key, config]) => {
                     const cost = config.baseCost;
                     const isPlacing = placingType === key;
@@ -1226,7 +1474,9 @@ export default function BusinessEmpireGame() {
             {(placingType || movingBuildingId) && (
               <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-between text-xs">
                 <span className="text-amber-300 font-medium">
-                  {movingBuildingId ? "Select relocation tile on grid" : `Placing: ${BUILDING_CONFIGS[placingType || ""].name}`}
+                  {movingBuildingId 
+                    ? "Select relocation tile on grid" 
+                    : `Placing: ${placingType === "road" ? "Transit Road" : (BUILDING_CONFIGS[placingType || ""]?.name || "")}`}
                 </span>
                 <button
                   onClick={() => {
@@ -1284,9 +1534,18 @@ export default function BusinessEmpireGame() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               
               {/* Grid visualization */}
-              <div className="md:col-span-2 bg-neutral-900 border border-neutral-800 rounded-2xl p-5 shadow-xl flex items-center justify-center">
-                <div className="relative">
-                  <div className="grid grid-cols-10 gap-[2px] bg-neutral-950 p-[3px] rounded-xl border border-neutral-800 select-none">
+              <div className="md:col-span-2 bg-neutral-900 border border-neutral-800 rounded-2xl p-4 shadow-xl flex flex-col items-center">
+                <div className="text-[10px] text-neutral-500 font-mono mb-2 self-start flex justify-between w-full">
+                  <span>Hover tiles to inspect. Click to build.</span>
+                  <span>GridSize: 20x20</span>
+                </div>
+                <div className="w-full border border-neutral-850 rounded-xl bg-neutral-950 p-1.5">
+                  <div 
+                    className="grid gap-[1px] bg-neutral-950 select-none w-full"
+                    style={{
+                      gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
+                    }}
+                  >
                     {Array.from({ length: gridSize }).map((_, y) => (
                       <React.Fragment key={y}>
                         {Array.from({ length: gridSize }).map((_, x) => {
@@ -1306,6 +1565,9 @@ export default function BusinessEmpireGame() {
                           // Natural Deposit nodes marker (displayed behind buildings)
                           const depositNode = gameState.depositNodes.find(n => n.x === x && n.y === y);
 
+                          // V0.5 Road check
+                          const isRoad = (gameState.roads || []).some(r => r.x === x && r.y === y);
+
                           const activeCell = building || company;
                           const isTopLeft = activeCell && activeCell.x === x && activeCell.y === y;
                           const activeConfig = activeCell ? BUILDING_CONFIGS[activeCell.type] : null;
@@ -1314,7 +1576,9 @@ export default function BusinessEmpireGame() {
                           let isHoverOverlay = false;
                           let isValidPlacement = false;
                           if (hoverTile && (placingType || movingBuildingId)) {
-                            const configToPlace = BUILDING_CONFIGS[placingType || ""] || (movingBuildingId ? BUILDING_CONFIGS[gameState.buildings.find(b => b.id === movingBuildingId)?.type || ""] : null);
+                            const configToPlace = placingType === "road"
+                              ? { width: 1, height: 1 }
+                              : (BUILDING_CONFIGS[placingType || ""] || (movingBuildingId ? BUILDING_CONFIGS[gameState.buildings.find(b => b.id === movingBuildingId)?.type || ""] : null));
                             if (configToPlace) {
                               const inRangeX = x >= hoverTile.x && x < hoverTile.x + configToPlace.width;
                               const inRangeY = y >= hoverTile.y && y < hoverTile.y + configToPlace.height;
@@ -1336,57 +1600,47 @@ export default function BusinessEmpireGame() {
                               onClick={() => handleGridClick(x, y)}
                               onMouseEnter={() => (placingType || movingBuildingId) && setHoverTile({ x, y })}
                               onMouseLeave={() => setHoverTile(null)}
-                              className={`w-9 h-9 md:w-11 md:h-11 rounded flex flex-col items-center justify-center transition-all cursor-pointer relative group ${
+                              title={
+                                activeCell 
+                                  ? `${activeConfig?.name} (L${activeCell.level})` 
+                                  : depositNode 
+                                    ? `${depositNode.type.replace(/_/g, " ").toUpperCase()}` 
+                                    : isRoad 
+                                      ? "Transit Road" 
+                                      : `Tile (${x}, ${y})`
+                              }
+                              className={`w-full aspect-square rounded-[1px] flex flex-col items-center justify-center transition-all cursor-pointer relative group ${
                                 isHoverOverlay
                                   ? isValidPlacement 
-                                    ? "bg-amber-500/60 ring-2 ring-amber-400 z-20" 
-                                    : "bg-rose-600/50 ring-2 ring-rose-500 z-20"
+                                    ? "bg-amber-500/60 ring-1 ring-amber-400 z-20" 
+                                    : "bg-rose-600/50 ring-1 ring-rose-500 z-20"
                                   : isTopLeft
-                                    ? `${activeConfig?.color} shadow-lg ring-1 ring-white/10 z-10 font-bold`
+                                    ? `${activeConfig?.color} shadow shadow-black/40 ring-1 ring-white/10 z-10 font-bold`
                                     : activeCell
-                                      ? `${activeConfig?.color} opacity-80 ring-1 ring-white/5`
-                                      : depositNode
-                                        ? `${
-                                            depositNode.type === "fertile_land" 
-                                              ? "bg-emerald-950/40 text-emerald-500 border border-emerald-900/30" 
-                                              : depositNode.type === "forest"
-                                                ? "bg-green-950/30 text-green-500 border border-green-900/20"
-                                                : depositNode.type === "iron_deposit"
-                                                  ? "bg-slate-800/40 text-slate-400 border border-slate-700/30"
-                                                  : depositNode.type === "coal_deposit"
-                                                    ? "bg-neutral-950/40 text-neutral-500 border border-neutral-900/30"
-                                                    : depositNode.type === "limestone_deposit"
-                                                      ? "bg-stone-850/40 text-stone-400 border border-stone-800/30"
-                                                      : "bg-amber-950/40 text-amber-500 border border-amber-900/30"
-                                          } font-bold`
-                                        : "bg-neutral-900 hover:bg-neutral-850 border border-neutral-800/20"
+                                      ? `${activeConfig?.color} opacity-80`
+                                      : isRoad
+                                        ? "bg-neutral-800 border border-neutral-700/80 shadow-inner z-10"
+                                        : depositNode
+                                          ? `${
+                                              depositNode.type === "fertile_land" 
+                                                ? "bg-emerald-950/40 border border-emerald-900/10" 
+                                                : depositNode.type === "forest"
+                                                  ? "bg-green-950/30 border border-green-900/10"
+                                                  : depositNode.type === "iron_deposit"
+                                                    ? "bg-slate-800/40 border border-slate-700/10"
+                                                    : depositNode.type === "coal_deposit"
+                                                      ? "bg-neutral-950/40 border border-neutral-900/10"
+                                                      : depositNode.type === "limestone_deposit"
+                                                        ? "bg-stone-850/40 border border-stone-800/10"
+                                                        : "bg-amber-950/40 border border-amber-900/10"
+                                            } font-bold`
+                                          : "bg-neutral-900 hover:bg-neutral-850 border border-neutral-800/10"
                               }`}
                             >
-                              {/* Display deposit node label if cell is empty */}
-                              {!activeCell && depositNode && (
-                                <div className="text-[6px] text-center font-bold tracking-tighter opacity-80">
-                                  {depositNode.type === "iron_deposit" && "IRON"}
-                                  {depositNode.type === "coal_deposit" && "COAL"}
-                                  {depositNode.type === "oil_field" && "OIL"}
-                                  {depositNode.type === "limestone_deposit" && "LIME"}
-                                  {depositNode.type === "fertile_land" && "LAND"}
-                                  {depositNode.type === "forest" && "FOREST"}
-                                </div>
-                              )}
-
-                              {/* Display building info */}
-                              {isTopLeft && activeCell && (
-                                <div className="text-[7px] md:text-[8px] font-bold text-white text-center leading-tight truncate w-full px-0.5">
-                                  {activeConfig?.name.split(" ")[0]}
-                                  {"progressionLevel" in activeCell && activeCell.progressionLevel ? (
-                                    <span className="block text-[6px] text-amber-300 font-mono">
-                                      T{activeCell.progressionLevel} L{activeCell.level}
-                                    </span>
-                                  ) : (
-                                    <span className="block text-[6px] text-yellow-400 font-mono">
-                                      HQ L{activeCell.level}
-                                    </span>
-                                  )}
+                              {/* V0.5 Road visual dashed divider lines */}
+                              {isRoad && !activeCell && (
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                  <div className="w-[50%] h-[1px] bg-yellow-500/55 border-t border-dashed border-yellow-400/40" />
                                 </div>
                               )}
                             </div>
@@ -2054,71 +2308,90 @@ export default function BusinessEmpireGame() {
                 <Truck className="h-8 w-8 text-amber-500" />
               </div>
 
-              {/* Buying Shop */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {VEHICLE_CONFIGS.map(v => (
-                  <div key={v.id} className="bg-neutral-950 p-3 rounded-xl border border-neutral-850 flex flex-col justify-between h-32">
-                    <div>
-                      <h4 className="font-bold text-xs text-neutral-200">{v.name}</h4>
-                      <p className="text-[9px] text-neutral-500 font-mono mt-0.5">
-                        Capacity: {v.capacity} VU<br />
-                        Speed: +{Math.round(v.deliverySpeedBonus * 100)}%
+              {(() => {
+                const hasLogisticsHq = gameState.buildings.some(b => b.type === "logistics_hq" && !(gameState.constructionQueue || []).some(cq => cq.buildingId === b.id));
+                if (!hasLogisticsHq) {
+                  return (
+                    <div className="bg-neutral-950 p-6 rounded-xl border border-neutral-850 text-center space-y-2">
+                      <Truck className="h-6 w-6 text-neutral-600 mx-auto" />
+                      <h4 className="text-[11px] font-bold text-neutral-350">🔒 Logistics HQ Operations Offline</h4>
+                      <p className="text-[9px] text-neutral-500 max-w-sm mx-auto leading-normal">
+                        You must construct a **Logistics HQ Operations** center (under the Infrastructure catalog tab) to purchase cargo trucks and upgrade fleet stats.
                       </p>
                     </div>
-                    <button
-                      onClick={() => handleBuyVehicle(v.id)}
-                      disabled={gameState.money < v.cost}
-                      className="w-full py-1 bg-amber-500 hover:bg-amber-400 text-neutral-950 text-[10px] font-bold rounded disabled:opacity-40"
-                    >
-                      Buy (${v.cost})
-                    </button>
-                  </div>
-                ))}
-              </div>
+                  );
+                }
 
-              {/* Owned Vehicles List */}
-              <div className="space-y-3 border-t border-neutral-850 pt-4">
-                <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">My Active Cargo Fleet ({gameState.vehicles.length})</h3>
-                
-                {gameState.vehicles.length === 0 ? (
-                  <div className="text-xs text-neutral-600 italic py-4 text-center">No active vehicles purchased. Purchase delivery vans to speed up sales.</div>
-                ) : (
-                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                    {gameState.vehicles.map(veh => {
-                      const speedCost = veh.speedLevel * 800;
-                      const capCost = veh.capacityLevel * 800;
-
-                      return (
-                        <div key={veh.id} className="bg-neutral-950 p-3 rounded-xl border border-neutral-900 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+                return (
+                  <>
+                    {/* Buying Shop */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {VEHICLE_CONFIGS.map(v => (
+                        <div key={v.id} className="bg-neutral-950 p-3 rounded-xl border border-neutral-850 flex flex-col justify-between h-32">
                           <div>
-                            <span className="font-bold text-neutral-200 capitalize">{veh.type.replace(/_/g, " ")}</span>
-                            <div className="text-[10px] text-neutral-500 font-mono mt-0.5">
-                              Speed: L{veh.speedLevel} • Capacity: L{veh.capacityLevel}
-                            </div>
+                            <h4 className="font-bold text-xs text-neutral-200">{v.name}</h4>
+                            <p className="text-[9px] text-neutral-500 font-mono mt-0.5">
+                              Capacity: {v.capacity} VU<br />
+                              Speed: +{Math.round(v.deliverySpeedBonus * 100)}%
+                            </p>
                           </div>
-
-                          <div className="flex gap-2 font-mono">
-                            <button
-                              onClick={() => handleUpgradeVehicleStat(veh.id, "speed")}
-                              disabled={gameState.money < speedCost}
-                              className="px-2.5 py-1 bg-neutral-800 hover:bg-neutral-750 text-[10px] text-neutral-200 rounded disabled:opacity-50"
-                            >
-                              +Speed (${speedCost})
-                            </button>
-                            <button
-                              onClick={() => handleUpgradeVehicleStat(veh.id, "capacity")}
-                              disabled={gameState.money < capCost}
-                              className="px-2.5 py-1 bg-neutral-800 hover:bg-neutral-750 text-[10px] text-neutral-200 rounded disabled:opacity-50"
-                            >
-                              +Capacity (${capCost})
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => handleBuyVehicle(v.id)}
+                            disabled={gameState.money < v.cost}
+                            className="w-full py-1 bg-amber-500 hover:bg-amber-400 text-neutral-950 text-[10px] font-bold rounded disabled:opacity-40"
+                          >
+                            Buy (${v.cost})
+                          </button>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+                      ))}
+                    </div>
+
+                    {/* Owned Vehicles List */}
+                    <div className="space-y-3 border-t border-neutral-850 pt-4">
+                      <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">My Active Cargo Fleet ({gameState.vehicles.length})</h3>
+                      
+                      {gameState.vehicles.length === 0 ? (
+                        <div className="text-xs text-neutral-600 italic py-4 text-center">No active vehicles purchased. Purchase delivery vans to speed up sales.</div>
+                      ) : (
+                        <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                          {gameState.vehicles.map(veh => {
+                            const speedCost = veh.speedLevel * 800;
+                            const capCost = veh.capacityLevel * 800;
+
+                            return (
+                              <div key={veh.id} className="bg-neutral-950 p-3 rounded-xl border border-neutral-900 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+                                <div>
+                                  <span className="font-bold text-neutral-200 capitalize">{veh.type.replace(/_/g, " ")}</span>
+                                  <div className="text-[10px] text-neutral-500 font-mono mt-0.5">
+                                    Speed: L{veh.speedLevel} • Capacity: L{veh.capacityLevel}
+                                  </div>
+                                </div>
+
+                                <div className="flex gap-2 font-mono">
+                                  <button
+                                    onClick={() => handleUpgradeVehicleStat(veh.id, "speed")}
+                                    disabled={gameState.money < speedCost}
+                                    className="px-2.5 py-1 bg-neutral-800 hover:bg-neutral-750 text-[10px] text-neutral-200 rounded disabled:opacity-50"
+                                  >
+                                    +Speed (${speedCost})
+                                  </button>
+                                  <button
+                                    onClick={() => handleUpgradeVehicleStat(veh.id, "capacity")}
+                                    disabled={gameState.money < capCost}
+                                    className="px-2.5 py-1 bg-neutral-800 hover:bg-neutral-750 text-[10px] text-neutral-200 rounded disabled:opacity-50"
+                                  >
+                                    +Capacity (${capCost})
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           )}
 
@@ -2285,50 +2558,86 @@ export default function BusinessEmpireGame() {
                   </p>
                 </div>
 
-                {/* Import Buttons */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-[10px] font-mono">
-                  {Object.entries(RESOURCES_CONFIG)
-                    .filter(([id, cfg]) => cfg.category === "natural" || id === "mortar")
-                    .map(([resId, cfg]) => {
-                      const costPerUnit = cfg.basePrice * 2.5; // Premium import price
-                      const importQty = 50;
-                      const totalCost = costPerUnit * importQty;
-                      const canAfford = gameState.money >= totalCost;
+                {(() => {
+                  const activeTradeCenters = gameState.buildings.filter(b => b.type === "trade_center" && !(gameState.constructionQueue || []).some(cq => cq.buildingId === b.id));
+                  const hasTradeCenter = activeTradeCenters.length > 0;
+                  const tradeCenterLvl = activeTradeCenters[0]?.level || 1;
+                  const maxActiveImports = 1 + tradeCenterLvl;
+                  const activeImportsCount = gameState.imports?.length || 0;
 
-                      return (
-                        <div key={resId} className="bg-neutral-950 p-2.5 rounded-xl border border-neutral-850 flex flex-col justify-between h-24">
-                          <div>
-                            <span className="font-bold text-neutral-300 block truncate">{cfg.name}</span>
-                            <span className="text-neutral-500 text-[9px] block">Order: 50x</span>
-                            <span className="text-amber-500 text-[9px] font-bold block">${totalCost.toFixed(0)}</span>
-                          </div>
-                          
-                          <button
-                            onClick={() => {
-                              setGameState(prev => {
-                                const newImport = {
-                                  id: `imp-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-                                  resource: resId,
-                                  qty: importQty,
-                                  timeRemaining: 15,
-                                  cost: totalCost
-                                };
-                                return {
-                                  ...prev,
-                                  money: prev.money - totalCost,
-                                  imports: [...(prev.imports || []), newImport]
-                                };
-                              });
-                            }}
-                            disabled={!canAfford}
-                            className="w-full mt-2 py-1 bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 border border-emerald-900/30 rounded text-[9px] font-bold disabled:opacity-40 text-center"
-                          >
-                            Order
-                          </button>
-                        </div>
-                      );
-                    })}
-                </div>
+                  if (!hasTradeCenter) {
+                    return (
+                      <div className="bg-neutral-950 p-6 rounded-xl border border-neutral-850 text-center space-y-2">
+                        <Compass className="h-6 w-6 text-neutral-600 mx-auto" />
+                        <h4 className="text-[11px] font-bold text-neutral-350">🔒 International Trade Terminal Locked</h4>
+                        <p className="text-[9px] text-neutral-500 max-w-sm mx-auto leading-normal">
+                          You must construct an **International Trade Center** (under the Infrastructure catalog tab) to unlock material imports.
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-3">
+                      <div className="text-[9px] font-mono text-neutral-400 bg-neutral-950 p-1.5 px-3 rounded border border-neutral-850 flex justify-between">
+                        <span>Trade Center L{tradeCenterLvl}</span>
+                        <span className={activeImportsCount >= maxActiveImports ? "text-rose-400 font-bold" : "text-emerald-400"}>
+                          Active Cargo Slots: {activeImportsCount} / {maxActiveImports} used
+                        </span>
+                      </div>
+
+                      {/* Import Buttons */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-[10px] font-mono">
+                        {Object.entries(RESOURCES_CONFIG)
+                          .filter(([id, cfg]) => cfg.category === "natural" || id === "mortar")
+                          .map(([resId, cfg]) => {
+                            const costPerUnit = cfg.basePrice * 2.5; // Premium import price
+                            const importQty = 50;
+                            const totalCost = costPerUnit * importQty;
+                            const canAfford = gameState.money >= totalCost;
+                            const isSlotFull = activeImportsCount >= maxActiveImports;
+
+                            return (
+                              <div key={resId} className="bg-neutral-950 p-2.5 rounded-xl border border-neutral-850 flex flex-col justify-between h-24">
+                                <div>
+                                  <span className="font-bold text-neutral-300 block truncate">{cfg.name}</span>
+                                  <span className="text-neutral-500 text-[9px] block">Order: 50x</span>
+                                  <span className="text-amber-500 text-[9px] font-bold block">${totalCost.toFixed(0)}</span>
+                                </div>
+                                
+                                <button
+                                  onClick={() => {
+                                    if (activeImportsCount >= maxActiveImports) {
+                                      alert("Trade slots full! Upgrade your Trade Center to unlock more slots.");
+                                      return;
+                                    }
+                                    setGameState(prev => {
+                                      const newImport = {
+                                        id: `imp-${Date.now()}-${Math.floor(Math.random() * 1050)}`,
+                                        resource: resId,
+                                        qty: importQty,
+                                        timeRemaining: 15,
+                                        cost: totalCost
+                                      };
+                                      return {
+                                        ...prev,
+                                        money: prev.money - totalCost,
+                                        imports: [...(prev.imports || []), newImport]
+                                      };
+                                    });
+                                  }}
+                                  disabled={!canAfford || isSlotFull}
+                                  className="w-full mt-2 py-1 bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 border border-emerald-900/30 rounded text-[9px] font-bold disabled:opacity-30 text-center"
+                                >
+                                  {isSlotFull ? "Slots Full" : "Order"}
+                                </button>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Active Deliveries Queue */}
                 {gameState.imports && gameState.imports.length > 0 && (

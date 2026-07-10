@@ -26,10 +26,10 @@ export function runSimulationTick(state: GameState): TickResult {
   });
 
   // 1. Calculate Warehouse Volume Storage limits
-  // Base warehouse capacity if no warehouses is 200 volume.
+  // Base warehouse capacity if no warehouses is 1600 volume.
   // Each warehouse adds its baseCapacity * level multiplier
   const warehouses = nextState.buildings.filter(b => b.type === "warehouse");
-  const baseWarehouseCap = 200;
+  const baseWarehouseCap = 1600;
   const warehouseBonus = warehouses.reduce((sum, b) => {
     const levelMult = 1 + (b.level - 1) * 0.6; // +60% capacity per upgrade level
     const config = BUILDING_CONFIGS.warehouse;
@@ -68,15 +68,45 @@ export function runSimulationTick(state: GameState): TickResult {
   const bankCount = nextState.buildings.filter(b => b.type === "bank").length;
   const bankProfitBonus = Math.min(0.15, bankCount * 0.05);
 
+  // Process V0.5 Construction Queue countdown
+  if (!nextState.constructionQueue) {
+    nextState.constructionQueue = [];
+  }
+
+  const completedProjects: typeof nextState.constructionQueue = [];
+  nextState.constructionQueue = nextState.constructionQueue.map(project => {
+    const nextTime = project.timeRemaining - 1;
+    if (nextTime <= 0) {
+      completedProjects.push(project);
+    }
+    return { ...project, timeRemaining: nextTime };
+  }).filter(project => project.timeRemaining > 0);
+
+  // Apply completed constructions/upgrades
+  completedProjects.forEach(project => {
+    const b = nextState.buildings.find(item => item.id === project.buildingId);
+    if (!b) return;
+
+    if (project.type === "upgrade") {
+      b.level += 1;
+      logs.push(`👷 Builder crew finished upgrading ${BUILDING_CONFIGS[b.type]?.name || "building"} to Level ${b.level}!`);
+    } else {
+      logs.push(`👷 Builder crew finished constructing new ${BUILDING_CONFIGS[b.type]?.name || "building"}!`);
+    }
+  });
+
+  // Calculate roads count for transport speed boosts (+0.5% transport rate per road tile)
+  const roadsCount = nextState.roads?.length || 0;
+  const roadSpeedBonus = roadsCount * 0.005;
+
   // Check if player has Logistics trucks (each vehicle adds delivery speed bonus)
-  // Let's sum logistics vehicle speed boosts
   let deliverySpeedBonus = 0;
   nextState.vehicles.forEach(veh => {
     // base speed bonus + upgrade level bonuses
-    if (veh.type === "pickup") deliverySpeedBonus += 0.1 + (veh.speedLevel * 0.02);
-    else if (veh.type === "delivery_van") deliverySpeedBonus += 0.25 + (veh.speedLevel * 0.04);
-    else if (veh.type === "medium_truck") deliverySpeedBonus += 0.45 + (veh.speedLevel * 0.06);
-    else if (veh.type === "heavy_truck") deliverySpeedBonus += 0.70 + (veh.speedLevel * 0.10);
+    if (veh.type === "pickup") deliverySpeedBonus += 0.1 + (veh.speedLevel * 0.02) + roadSpeedBonus;
+    else if (veh.type === "delivery_van") deliverySpeedBonus += 0.25 + (veh.speedLevel * 0.04) + roadSpeedBonus;
+    else if (veh.type === "medium_truck") deliverySpeedBonus += 0.45 + (veh.speedLevel * 0.06) + roadSpeedBonus;
+    else if (veh.type === "heavy_truck") deliverySpeedBonus += 0.70 + (veh.speedLevel * 0.10) + roadSpeedBonus;
   });
 
   // Check if player has Tourism Office (+20% customer reach/demand)
@@ -93,6 +123,9 @@ export function runSimulationTick(state: GameState): TickResult {
   // 4. Extractor Node Production (Iron Mine, Quarry, Oil Rig, Coal Shaft, Farm)
   // Extractors must be built on matching natural deposit nodes.
   nextState.buildings.forEach(b => {
+    // V0.5 Skip busy construction buildings
+    if ((nextState.constructionQueue || []).some(cq => cq.buildingId === b.id)) return;
+
     const config = BUILDING_CONFIGS[b.type];
     if (!config || config.category !== "extractor") return;
 
@@ -146,6 +179,9 @@ export function runSimulationTick(state: GameState): TickResult {
   // 5. Factory Production (Manufacturing)
   // Factories consume raw/processed items and output finished items based on selected recipe.
   nextState.buildings.forEach(b => {
+    // V0.5 Skip busy construction buildings
+    if ((nextState.constructionQueue || []).some(cq => cq.buildingId === b.id)) return;
+
     const config = BUILDING_CONFIGS[b.type];
     if (!config || config.category !== "factory") return;
 
@@ -250,6 +286,9 @@ export function runSimulationTick(state: GameState): TickResult {
   // 6. Service Businesses (Interior Design, Architecture, Consulting, Garage, Hotel)
   // Generates service revenue directly based on type and progression tier (Office, Firm, Corporate)
   nextState.buildings.forEach(b => {
+    // V0.5 Skip busy construction buildings
+    if ((nextState.constructionQueue || []).some(cq => cq.buildingId === b.id)) return;
+
     const config = BUILDING_CONFIGS[b.type];
     if (!config || config.category !== "service") return;
 
@@ -286,6 +325,9 @@ export function runSimulationTick(state: GameState): TickResult {
   // 7. Retail Sales (Selling Finished Goods)
   // Retail shops sell match resource items to customers
   nextState.buildings.forEach(b => {
+    // V0.5 Skip busy construction buildings
+    if ((nextState.constructionQueue || []).some(cq => cq.buildingId === b.id)) return;
+
     const config = BUILDING_CONFIGS[b.type];
     if (!config || config.category !== "retail") return;
 
@@ -426,6 +468,8 @@ export function runSimulationTick(state: GameState): TickResult {
   // 10. V0.3 Agriculture Farm growth cycle progress
   nextState.buildings.forEach(b => {
     if (b.type !== "agricultural_farm") return;
+    // V0.5 Skip busy construction buildings
+    if ((nextState.constructionQueue || []).some(cq => cq.buildingId === b.id)) return;
 
     // Verify integrity (0% pauses crop growth)
     if (b.integrity !== undefined && b.integrity <= 0) return;
@@ -506,6 +550,9 @@ export function runSimulationTick(state: GameState): TickResult {
 
   // 11b. V0.3 Building Wear Decay based on active status
   nextState.buildings.forEach(b => {
+    // V0.5 Skip busy construction buildings
+    if ((nextState.constructionQueue || []).some(cq => cq.buildingId === b.id)) return;
+
     // If working: wears out slower (0.12% integrity decay per tick ~800s to 0)
     // If stopped/idle: wears out faster (0.35% integrity decay per tick ~285s to 0)
     let decayRate = workingBuildingIds.has(b.id) ? 0.12 : 0.35;

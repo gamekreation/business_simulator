@@ -139,6 +139,33 @@ Decay Freezing for Paused Operations:
 * Factories freeze decay wear completely (0% wear) if their target production quotas are reached or if the global warehouse is too full to store their output.
 
 --------------------------------------------------------------------------------
+3c. VERSION 0.5 INFRASTRUCTURE FEATURES (BUILDER CREWS & ROAD NETWORKS)
+--------------------------------------------------------------------------------
+Construction Crews & Queue timers:
+* Placed buildings and triggered upgrades are no longer instant. They are enqueued in an active construction queue.
+* The player starts with 2 Builder Crews. Each active build/upgrade project occupies 1 crew.
+* If all crews are busy, new building placements and level upgrades are blocked until a crew becomes free.
+* RTS Construction Progress widgets (with countdown timers and dynamic visual progress bars) render directly over grid tiles.
+* Buildings skip all operations (resource extraction, input consumption, manufacturing, sales, decay, etc.) while under construction or upgrading.
+
+Transit Road Networks:
+* Placed via the Construction catalog. Cost: $10, 1 Limestone, 1 Wood per road tile.
+* Instantly constructed on 1x1 tiles. Displayed with a custom dark-asphalt texture and center dividing lanes.
+* Each road tile built provides a global logistical hauling speed boost (+0.5% transport speed per tile) to speed up deliveries.
+
+Map Resizing & Visual Optimization:
+* Reduced scrolling grid panel to a clean, fit-to-screen **20 x 20** viewport (400 coordinates total).
+* Cells automatically scale responsively (`w-full aspect-square`) to fit any device monitor size without scrolling.
+* Stripped text overlays inside tiny cells to prevent layout distortions.
+* Added native hover tooltips (`title`) describing building level, coordinates, roads, or natural resource node types.
+* Pre-populated deposit nodes (Iron, Coal, Lime, Oil, Forests, Fertile Land) procedurally in cluster distributions.
+
+Hydration Optimization & Starting Balances:
+* Added a client-side mounting check (`isMounted`) that delays JSX rendering until local storage loads, removing startup layouts flickering.
+* Adjusted new game parameters: starts with **$5,000**, **70 Iron Ore**, **70 Limestone**, **70 Mortar**, **70 Wood**, and **0 Cotton**.
+* Set initial base warehouse capacity to **1,600** volume units.
+
+--------------------------------------------------------------------------------
 4. SIGNIFICANT BUG FIXES & STABILITY RESOLUTIONS
 --------------------------------------------------------------------------------
 * React StrictMode Double-Increments:
@@ -153,3 +180,7 @@ Decay Freezing for Paused Operations:
 * Company HQ boardroom upgrades:
   - Issue: The company boardroom tab was replaced in V0.2, leaving HQs un-upgradable.
   - Resolution: Added Corporate HQ Level and department skill controls directly inside the Property Inspector.
+* Road Placement TypeError:
+  - Issue: Attempting to place roads threw an undefined lookup error on `placingType.name` since roads are not in `BUILDING_CONFIGS`.
+  - Resolution: Implemented safe checks for `placingType === "road"` fallback strings.
+

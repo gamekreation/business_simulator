@@ -71,7 +71,6 @@ export interface GameState {
     resource: string;
     qty: number;
     timeRemaining: number; // in seconds
-    cost: number;
   }>;
   // V0.3 Dispatch-based shipments queue
   shipments?: Array<{
@@ -80,6 +79,19 @@ export interface GameState {
     resource: string;
     qty: number;
     qtyDelivered: number;
+  }>;
+  // V0.5 Builder Queue and Roads
+  buildersCount?: number;
+  constructionQueue?: Array<{
+    id: string;
+    buildingId: string;
+    type: "construct" | "upgrade";
+    timeRemaining: number; // in seconds
+    totalTime: number; // original time duration
+  }>;
+  roads?: Array<{
+    x: number;
+    y: number;
   }>;
 }
 
