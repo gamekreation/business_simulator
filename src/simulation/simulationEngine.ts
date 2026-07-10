@@ -296,11 +296,31 @@ export function runSimulationTick(state: GameState): TickResult {
     if (b.integrity !== undefined && b.integrity <= 0) return;
 
     let baseServiceRevenue = 0;
-    if (b.type === "interior_design_studio") baseServiceRevenue = 40;
-    else if (b.type === "garage") baseServiceRevenue = 55;
-    else if (b.type === "architecture_firm") baseServiceRevenue = 90;
-    else if (b.type === "consulting_firm") baseServiceRevenue = 120;
-    else if (b.type === "hotel") baseServiceRevenue = 200;
+    let requiredInputResource = "";
+    if (b.type === "interior_design_studio") {
+      baseServiceRevenue = 40;
+      requiredInputResource = "furniture";
+    } else if (b.type === "garage") {
+      baseServiceRevenue = 55;
+      requiredInputResource = "car_parts";
+    } else if (b.type === "architecture_firm") {
+      baseServiceRevenue = 90;
+    } else if (b.type === "consulting_firm") {
+      baseServiceRevenue = 120;
+    } else if (b.type === "hotel") {
+      baseServiceRevenue = 200;
+    }
+
+    // Verify input resources if required
+    if (requiredInputResource) {
+      const inputQty = nextState.resources[requiredInputResource] || 0;
+      if (inputQty < 1) {
+        // Log lack of resources occasionally or silently skip
+        return;
+      }
+      // Consume 1 unit
+      nextState.resources[requiredInputResource] = Math.max(0, inputQty - 1);
+    }
 
     const levelMult = 1 + (b.level - 1) * 0.5;
     // Progression: 1 = Office (1x), 2 = Firm (2x), 3 = Corporate (4x)
@@ -346,25 +366,13 @@ export function runSimulationTick(state: GameState): TickResult {
 
     // Map shop type to resource sold
     let itemToSell = "";
-    if (b.type === "clothing_shop") itemToSell = "fabric";
+    if (b.type === "clothing_shop") itemToSell = "clothes";
     else if (b.type === "furniture_shop") itemToSell = "furniture";
     else if (b.type === "food_shop") itemToSell = "food";
-    else if (b.type === "grocery_shop") {
-      // Sells crops or food (sell whichever has higher quantity)
-      const cropsQty = nextState.resources.fertile_land_crop || 0;
-      const foodQty = nextState.resources.food || 0;
-      itemToSell = cropsQty > foodQty ? "fertile_land_crop" : "food";
-    } else if (b.type === "medical_shop") itemToSell = "medicine";
+    else if (b.type === "grocery_shop") itemToSell = "grocery_goods";
+    else if (b.type === "medical_shop") itemToSell = "medicine";
     else if (b.type === "gas_station") itemToSell = "fuel";
-    else if (b.type === "electronics_shop") {
-      const elecQty = nextState.resources.electronics || 0;
-      const vehQty = nextState.resources.vehicles || 0;
-      const steelQty = nextState.resources.steel || 0;
-
-      if (vehQty > 0) itemToSell = "vehicles";
-      else if (elecQty > 0) itemToSell = "electronics";
-      else if (steelQty > 0) itemToSell = "steel";
-    }
+    else if (b.type === "electronics_shop") itemToSell = "electronics";
 
     const availableQty = nextState.resources[itemToSell] || 0;
     if (availableQty > 0 && itemToSell) {

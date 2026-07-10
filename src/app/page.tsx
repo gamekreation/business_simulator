@@ -45,7 +45,7 @@ const LOCAL_SAVE_ID = "proto_player_v0_2";
 
 // Helper to pre-populate fixed natural resource nodes on the 20x20 grid procedurally
 const generateProceduralDepositNodes = () => {
-  const nodes: { x: number; y: number; type: "iron_deposit" | "coal_deposit" | "oil_field" | "limestone_deposit" | "fertile_land" | "forest" }[] = [];
+  const nodes: { x: number; y: number; type: "iron_deposit" | "coal_deposit" | "oil_field" | "limestone_deposit" | "fertile_land" | "forest" | "stone_deposit" | "copper_deposit" | "silicon_deposit" | "uranium_deposit" }[] = [];
   
   // Seed resource clusters across 20x20 map
   const clusters = [
@@ -56,6 +56,10 @@ const generateProceduralDepositNodes = () => {
     { type: "fertile_land" as const, cx: 8, cy: 8, count: 9 },
     { type: "forest" as const, cx: 9, cy: 3, count: 6 },
     { type: "forest" as const, cx: 4, cy: 10, count: 4 },
+    { type: "stone_deposit" as const, cx: 2, cy: 9, count: 4 },
+    { type: "copper_deposit" as const, cx: 14, cy: 9, count: 4 },
+    { type: "silicon_deposit" as const, cx: 9, cy: 14, count: 4 },
+    { type: "uranium_deposit" as const, cx: 9, cy: 18, count: 3 },
   ];
 
   clusters.forEach(({ type, cx, cy, count }) => {
@@ -417,7 +421,7 @@ export default function BusinessEmpireGame() {
       const hasResources = 
         gameState.money >= config.baseCost &&
         (gameState.resources.iron_ore || 0) >= (config.baseIronCost || 0) &&
-        (gameState.resources.limestone || 0) >= (config.baseLimestoneCost || 0) &&
+        (gameState.resources.limestone || 0) >= (config.baseStoneCost || 0) &&
         (gameState.resources.mortar || 0) >= (config.baseMortarCost || 0) &&
         (gameState.resources.wood || 0) >= (config.baseWoodCost || 0);
 
@@ -455,7 +459,7 @@ export default function BusinessEmpireGame() {
 
           const updatedResources = { ...prev.resources };
           updatedResources.iron_ore = Math.max(0, (updatedResources.iron_ore || 0) - (config.baseIronCost || 0));
-          updatedResources.limestone = Math.max(0, (updatedResources.limestone || 0) - (config.baseLimestoneCost || 0));
+          updatedResources.limestone = Math.max(0, (updatedResources.limestone || 0) - (config.baseStoneCost || 0));
           updatedResources.mortar = Math.max(0, (updatedResources.mortar || 0) - (config.baseMortarCost || 0));
           updatedResources.wood = Math.max(0, (updatedResources.wood || 0) - (config.baseWoodCost || 0));
 
@@ -550,21 +554,21 @@ export default function BusinessEmpireGame() {
       const config = BUILDING_CONFIGS[b.type];
       const moneyCost = Math.floor(config.baseCost * Math.pow(1.6, b.level));
       const ironCost = Math.floor((config.baseIronCost || 0) * Math.pow(1.4, b.level));
-      const limeCost = Math.floor((config.baseLimestoneCost || 0) * Math.pow(1.4, b.level));
+      const stoneCost = Math.floor((config.baseStoneCost || 0) * Math.pow(1.4, b.level));
       const mortarCost = Math.floor((config.baseMortarCost || 0) * Math.pow(1.4, b.level));
       const woodCost = Math.floor((config.baseWoodCost || 0) * Math.pow(1.4, b.level));
 
       const hasResources = 
         prev.money >= moneyCost &&
         (prev.resources.iron_ore || 0) >= ironCost &&
-        (prev.resources.limestone || 0) >= limeCost &&
+        (prev.resources.limestone || 0) >= stoneCost &&
         (prev.resources.mortar || 0) >= mortarCost &&
         (prev.resources.wood || 0) >= woodCost;
 
       if (hasResources) {
         const updatedResources = { ...prev.resources };
         updatedResources.iron_ore = Math.max(0, (updatedResources.iron_ore || 0) - ironCost);
-        updatedResources.limestone = Math.max(0, (updatedResources.limestone || 0) - limeCost);
+        updatedResources.limestone = Math.max(0, (updatedResources.limestone || 0) - stoneCost);
         updatedResources.mortar = Math.max(0, (updatedResources.mortar || 0) - mortarCost);
         updatedResources.wood = Math.max(0, (updatedResources.wood || 0) - woodCost);
 
@@ -643,21 +647,21 @@ export default function BusinessEmpireGame() {
 
       const moneyCost = currentTier === 1 ? 1200 : 3500;
       const ironCost = currentTier === 1 ? 30 : 80;
-      const limeCost = currentTier === 1 ? 30 : 80;
+      const stoneCost = currentTier === 1 ? 30 : 80;
       const mortarCost = currentTier === 1 ? 15 : 45;
       const woodCost = currentTier === 1 ? 40 : 100;
 
       const hasResources = 
         prev.money >= moneyCost &&
         (prev.resources.iron_ore || 0) >= ironCost &&
-        (prev.resources.limestone || 0) >= limeCost &&
+        (prev.resources.limestone || 0) >= stoneCost &&
         (prev.resources.mortar || 0) >= mortarCost &&
         (prev.resources.wood || 0) >= woodCost;
 
       if (hasResources) {
         const updatedResources = { ...prev.resources };
         updatedResources.iron_ore = Math.max(0, (updatedResources.iron_ore || 0) - ironCost);
-        updatedResources.limestone = Math.max(0, (updatedResources.limestone || 0) - limeCost);
+        updatedResources.limestone = Math.max(0, (updatedResources.limestone || 0) - stoneCost);
         updatedResources.mortar = Math.max(0, (updatedResources.mortar || 0) - mortarCost);
         updatedResources.wood = Math.max(0, (updatedResources.wood || 0) - woodCost);
 
@@ -1391,7 +1395,7 @@ export default function BusinessEmpireGame() {
                     const hasResources = 
                       gameState.money >= cost &&
                       (gameState.resources.iron_ore || 0) >= (config.baseIronCost || 0) &&
-                      (gameState.resources.limestone || 0) >= (config.baseLimestoneCost || 0) &&
+                      (gameState.resources.limestone || 0) >= (config.baseStoneCost || 0) &&
                       (gameState.resources.mortar || 0) >= (config.baseMortarCost || 0) &&
                       (gameState.resources.wood || 0) >= (config.baseWoodCost || 0);
 
@@ -1427,9 +1431,9 @@ export default function BusinessEmpireGame() {
                                   {config.baseIronCost} Iron
                                 </span>
                               )}
-                              {(config.baseLimestoneCost || 0) > 0 && (
-                                <span className={(gameState.resources.limestone || 0) >= (config.baseLimestoneCost || 0) ? "text-stone-400" : "text-rose-400 font-bold"}>
-                                  {config.baseLimestoneCost} Lime
+                              {(config.baseStoneCost || 0) > 0 && (
+                                <span className={(gameState.resources.limestone || 0) >= (config.baseStoneCost || 0) ? "text-stone-400" : "text-rose-400 font-bold"}>
+                                  {config.baseStoneCost} Lime
                                 </span>
                               )}
                               {(config.baseMortarCost || 0) > 0 && (
@@ -1632,7 +1636,15 @@ export default function BusinessEmpireGame() {
                                                       ? "bg-neutral-950/40 border border-neutral-900/10"
                                                       : depositNode.type === "limestone_deposit"
                                                         ? "bg-stone-850/40 border border-stone-800/10"
-                                                        : "bg-amber-950/40 border border-amber-900/10"
+                                                        : depositNode.type === "stone_deposit"
+                                                          ? "bg-stone-700/30 border border-stone-600/10"
+                                                          : depositNode.type === "copper_deposit"
+                                                            ? "bg-orange-950/30 border border-orange-900/10"
+                                                            : depositNode.type === "silicon_deposit"
+                                                              ? "bg-cyan-950/30 border border-cyan-900/10"
+                                                              : depositNode.type === "uranium_deposit"
+                                                                ? "bg-lime-950/40 border border-lime-800/20"
+                                                                : "bg-amber-950/40 border border-amber-900/10"
                                             } font-bold`
                                           : "bg-neutral-900 hover:bg-neutral-850 border border-neutral-800/10"
                               }`}
@@ -2037,14 +2049,14 @@ export default function BusinessEmpireGame() {
                         {!selectedInfo.isCompany ? (() => {
                           const upgradeMoneyCost = Math.floor(selectedInfo.config.baseCost * Math.pow(1.6, bObj.level));
                           const upgradeIronCost = Math.floor((selectedInfo.config.baseIronCost || 0) * Math.pow(1.4, bObj.level));
-                          const upgradeLimeCost = Math.floor((selectedInfo.config.baseLimestoneCost || 0) * Math.pow(1.4, bObj.level));
+                          const upgradestoneCost = Math.floor((selectedInfo.config.baseStoneCost || 0) * Math.pow(1.4, bObj.level));
                           const upgradeMortarCost = Math.floor((selectedInfo.config.baseMortarCost || 0) * Math.pow(1.4, bObj.level));
                           const upgradeWoodCost = Math.floor((selectedInfo.config.baseWoodCost || 0) * Math.pow(1.4, bObj.level));
 
                           const hasResourcesToUpgrade = 
                             gameState.money >= upgradeMoneyCost &&
                             (gameState.resources.iron_ore || 0) >= upgradeIronCost &&
-                            (gameState.resources.limestone || 0) >= upgradeLimeCost &&
+                            (gameState.resources.limestone || 0) >= upgradestoneCost &&
                             (gameState.resources.mortar || 0) >= upgradeMortarCost &&
                             (gameState.resources.wood || 0) >= upgradeWoodCost;
 
@@ -2068,9 +2080,9 @@ export default function BusinessEmpireGame() {
                                     {upgradeIronCost} Iron
                                   </span>
                                 )}
-                                {upgradeLimeCost > 0 && (
-                                  <span className={(gameState.resources.limestone || 0) >= upgradeLimeCost ? "text-stone-400" : "text-rose-450 font-bold"}>
-                                    {upgradeLimeCost} Lime
+                                {upgradestoneCost > 0 && (
+                                  <span className={(gameState.resources.limestone || 0) >= upgradestoneCost ? "text-stone-400" : "text-rose-450 font-bold"}>
+                                    {upgradestoneCost} Lime
                                   </span>
                                 )}
                                 {upgradeMortarCost > 0 && (
@@ -2153,13 +2165,13 @@ export default function BusinessEmpireGame() {
                           const currentTier = bObj.progressionLevel || 1;
                           const progressMoneyCost = currentTier === 1 ? 1200 : 3500;
                           const progressIronCost = currentTier === 1 ? 30 : 80;
-                          const progressLimeCost = currentTier === 1 ? 30 : 80;
+                          const progressstoneCost = currentTier === 1 ? 30 : 80;
                           const progressMortarCost = currentTier === 1 ? 15 : 45;
 
                           const hasResourcesToProgress = 
                             gameState.money >= progressMoneyCost &&
                             (gameState.resources.iron_ore || 0) >= progressIronCost &&
-                            (gameState.resources.limestone || 0) >= progressLimeCost &&
+                            (gameState.resources.limestone || 0) >= progressstoneCost &&
                             (gameState.resources.mortar || 0) >= progressMortarCost;
 
                           return (
@@ -2180,8 +2192,8 @@ export default function BusinessEmpireGame() {
                                 <span className={(gameState.resources.iron_ore || 0) >= progressIronCost ? "text-slate-350" : "text-rose-450 font-bold"}>
                                   {progressIronCost} Iron
                                 </span>
-                                <span className={(gameState.resources.limestone || 0) >= progressLimeCost ? "text-stone-400" : "text-rose-450 font-bold"}>
-                                  {progressLimeCost} Lime
+                                <span className={(gameState.resources.limestone || 0) >= progressstoneCost ? "text-stone-400" : "text-rose-450 font-bold"}>
+                                  {progressstoneCost} Lime
                                 </span>
                                 <span className={(gameState.resources.mortar || 0) >= progressMortarCost ? "text-amber-500" : "text-rose-450 font-bold"}>
                                   {progressMortarCost} Mortar
@@ -2693,31 +2705,39 @@ export default function BusinessEmpireGame() {
             </div>
 
             <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1.5 scrollbar-thin">
-              {Object.values(FACTORY_RECIPES).map(recipe => (
-                <button
-                  key={recipe.id}
-                  onClick={() => {
-                    setGameState(prev => ({
-                      ...prev,
-                      buildings: prev.buildings.map(b =>
-                        b.id === pendingFactoryPlacementId ? { ...b, recipeId: recipe.id } : b
-                      )
-                    }));
-                    setPendingFactoryPlacementId(null);
-                  }}
-                  className="w-full flex items-center justify-between p-2.5 bg-neutral-950 border border-neutral-850 hover:border-amber-500 hover:bg-neutral-900/60 rounded-xl transition text-left group animate-in slide-in-from-bottom-2 duration-150"
-                >
-                  <div className="space-y-0.5">
-                    <div className="text-xs font-bold text-neutral-200 group-hover:text-amber-400 transition">{recipe.name}</div>
-                    <div className="text-[9px] text-neutral-500 font-mono">
-                      In: {recipe.inputs.map(i => `${i.amount}x ${RESOURCES_CONFIG[i.resource]?.name || i.resource}`).join(", ")}
-                    </div>
-                  </div>
-                  <div className="text-right font-mono text-[9px] text-emerald-455 font-bold">
-                    Out: {recipe.outputs.map(o => `${o.amount}x ${RESOURCES_CONFIG[o.resource]?.name || o.resource}`).join(", ")}
-                  </div>
-                </button>
-              ))}
+              {(() => {
+                const pendingBuilding = gameState.buildings.find(b => b.id === pendingFactoryPlacementId);
+                const factoryConfig = pendingBuilding ? BUILDING_CONFIGS[pendingBuilding.type] : null;
+                const allowed = factoryConfig?.allowedRecipes || [];
+
+                return Object.values(FACTORY_RECIPES)
+                  .filter(recipe => allowed.includes(recipe.id))
+                  .map(recipe => (
+                    <button
+                      key={recipe.id}
+                      onClick={() => {
+                        setGameState(prev => ({
+                          ...prev,
+                          buildings: prev.buildings.map(b =>
+                            b.id === pendingFactoryPlacementId ? { ...b, recipeId: recipe.id } : b
+                          )
+                        }));
+                        setPendingFactoryPlacementId(null);
+                      }}
+                      className="w-full flex items-center justify-between p-2.5 bg-neutral-950 border border-neutral-850 hover:border-amber-500 hover:bg-neutral-900/60 rounded-xl transition text-left group animate-in slide-in-from-bottom-2 duration-150"
+                    >
+                      <div className="space-y-0.5">
+                        <div className="text-xs font-bold text-neutral-200 group-hover:text-amber-400 transition">{recipe.name}</div>
+                        <div className="text-[9px] text-neutral-500 font-mono">
+                          In: {recipe.inputs.map(i => `${i.amount}x ${RESOURCES_CONFIG[i.resource]?.name || i.resource}`).join(", ")}
+                        </div>
+                      </div>
+                      <div className="text-right font-mono text-[9px] text-emerald-455 font-bold">
+                        Out: {recipe.outputs.map(o => `${o.amount}x ${RESOURCES_CONFIG[o.resource]?.name || o.resource}`).join(", ")}
+                      </div>
+                    </button>
+                  ));
+              })()}
             </div>
           </div>
         </div>

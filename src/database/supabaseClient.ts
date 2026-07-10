@@ -56,7 +56,7 @@ export interface GameState {
   depositNodes: Array<{
     x: number;
     y: number;
-    type: "iron_deposit" | "coal_deposit" | "oil_field" | "limestone_deposit" | "fertile_land" | "forest";
+    type: "iron_deposit" | "coal_deposit" | "oil_field" | "limestone_deposit" | "fertile_land" | "forest" | "stone_deposit" | "copper_deposit" | "silicon_deposit" | "uranium_deposit";
   }>;
   vehicles: Array<{
     id: string;
