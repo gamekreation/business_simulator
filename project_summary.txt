@@ -1,0 +1,155 @@
+BUSINESS EMPIRE PROTOTYPE DEVELOPMENT SUMMARY
+=============================================
+Version Roadmap: V0.1 -> V0.2 -> V0.3
+OS Environment: Windows Next.js App Router (Turbopack)
+
+This document traces the complete design decisions, feature implementations, and bugs resolved throughout the pair-programming development of the Business Empire simulation game.
+
+--------------------------------------------------------------------------------
+1. VERSION 0.1: THE FOUNDATION
+--------------------------------------------------------------------------------
+The initial session created a single-player business manager played on an interactive 10x10 RTS-style grid.
+
+Core Features:
+* Grid Map: A coordinate mapping grid where players can buy and place infrastructure.
+* Infrastructure Catalog: Basic extractors (Farms, Mines) and production factories.
+* Simulation Engine: Runs every 1 second, updating cash flows, processing raw materials into goods, and charging building maintenance.
+* Boardroom Mergers: Simple recipe checks that took adjacent basic buildings and merged them into Large Company HQs for massive passive revenue.
+* Cloud Autosaves: Fully integrated Supabase client mapping grid states to local storage and remote PostgreSQL servers.
+
+--------------------------------------------------------------------------------
+2. VERSION 0.2: DEEP ECONOMIC STRATEGY (THE EXPANSION)
+--------------------------------------------------------------------------------
+The goal of V0.2 was to transform the game from an idle builder into a strategic management simulator with authentic bottlenecks, complex production chains, and multi-currency RTS construction.
+
+Centralized Data Configurations:
+* Created src/buildings/buildingConfig.ts to completely decouple game properties from the simulation code.
+* Declared a comprehensive Resource Schema defining volume (VU) footprints and base market prices.
+* Created a data-driven Factory Recipe Registry mapping exact raw input and output units.
+
+Specialized Business Categories:
+* Retail Shops: Furniture, Food, Clothing, Medical, Grocery, and Electronics stores.
+* Service Businesses: Interior Design, Architecture, Consulting, Auto Garages, and Hotels.
+* Business Progression: Allowed upgrading placed shops and offices through multiple tiers (Shop/Office -> Showroom/Firm -> Dealership/Corporate).
+
+Natural Resource Grid Overlay:
+* Visual nodes placed on the map to define raw materials.
+* Extractor placement rules: Mines must be built on matching deposit nodes. Farms must be placed on Fertile Land.
+
+Volume-Based Warehouse Limits:
+* Warehouse storage cap calculated by total cumulative item volume (VU), rather than individual unit counts.
+* Production halts when warehouse reaches 100% capacity, forcing logistical coordination.
+
+Logistics Cargo Fleet:
+* Introduced a cargo fleet dashboard to purchase transport vehicles (Pickups, Vans, Medium/Heavy Trucks).
+* Active cargo trucks apply global delivery speed buffs, accelerating retail sell intervals.
+
+RTS Multi-Currency Construction:
+* Replaced simple cash purchases with physical resource costs.
+* Placing and upgrading buildings now requires Money, Iron Ore, Limestone, and Mortar.
+* Added Mortar Mixing recipe (2 Limestone -> 1 Mortar).
+* Implemented a top RTS-style resource HUD bar displaying Cash, Iron, Limestone, and Mortar.
+* Setup bootstrapper to grant 20 Iron Ore, 20 Limestone, and 10 Mortar on new games and load-healing to prevent starting deadlocks.
+
+--------------------------------------------------------------------------------
+3. VERSION 0.3: LOCAL SILOS, COMMITTED CROP CYCLES & GLOBAL IMPORTS
+--------------------------------------------------------------------------------
+The V0.3 update introduced authentic physical loops, local storage bottlenecks, active agricultural management, and strategic trade-offs through imports.
+
+Lumber Milling & Forest Resource Nodes:
+* Wood & Forest nodes: Added Forest deposit nodes to the map layout.
+* Lumber Mill: A new extractor built exclusively on Forest nodes to produce Wood.
+* Changed Furniture factory recipe to require 2 Wood (instead of Steel & Fabric), creating a natural timber production chain.
+
+Local Storage Silo Bottlenecks:
+* Decoupled raw extraction outputs from the global warehouse: extractors and farms now deposit harvested items into their own building-local silos (up to 100 units * building level).
+* If a local silo fills completely, extraction/farming automatically halts.
+
+Dispatch-Based Logistics Shipment System:
+* Automatic background hauling is replaced with a dispatch system.
+* Extractors and farms accumulate harvested goods in their local silos.
+* Players select a building and click "📤 Dispatch Shipment" to snapshot the current silo stock and transfer it into an active transit queue.
+* The local silo is immediately emptied, allowing it to start gathering new production without interrupting the active transit.
+* Each building can only have one active shipment in transit at a time.
+* Logistics fleet vehicles haul resources only from these active shipments in discrete truckloads to the global warehouse.
+
+Factory Target Quotas:
+* Added production limit options to the Property Inspector for factories.
+* Players can select a target quota (Infinite, 50, 100, 250, 500 units max in warehouse). When the quota is reached, the factory pauses operations and goes into low-wear mode.
+
+Committed Agricultural Cycles:
+* Farms no longer produce crops passively. Instead, players click on a farm on the grid and must choose between:
+  - 🌾 Grow Food (Crops)
+  - 🌱 Grow Cotton (raw Cotton material for Fabric)
+* Grow cycles take 60 seconds. Crop choices are locked during active growth, creating a strategic planning commitment. Completed cycles yield 124 crop units directly to the farm's local silo.
+
+Global Material Import Terminal:
+* Added a materials import deck inside the Dashboard.
+* Players can purchase 50 units of any raw natural resource (Iron, Coal, Lime, Oil, Wood, Cotton, Mortar) instantly at a premium price.
+* Import orders queue incoming cargo deliveries with a 15-second timer countdown, representing a strategic tradeoff between high-cost quick imports and long-term self-built extraction.
+
+Structural Integrity Decay (Revamped Maintenance):
+* Maintenance is no longer charged as a continuous cash leak.
+* Integrity decay scales with building work status:
+  - Working buildings (actively producing, extracting, hauling, or selling) experience a **low wear rate** (-0.12% per tick) due to active maintenance.
+  - Idle/Stopped buildings (due to critical breakdowns, full silos, lack of inputs, or quotas reached) experience a **high neglect rate** (-0.35% per tick).
+* At 0% integrity, the building experiences a structural breakdown: all extraction, manufacturing, retail sales, or service revenues are paused.
+* Players can pay a one-time repair fee (calculated based on structural base cost and current integrity status) to restore building health to 100 and resume operations immediately.
+
+RTS Wood Construction Costs:
+* Wood is now a core construction resource. Constructing or upgrading buildings now requires Money, Iron, Limestone, Mortar, and Wood.
+
+--------------------------------------------------------------------------------
+3b. VERSION 0.4 CORE FEATURES (INDUSTRIAL DEPARTMENTS & CORPORATE MERGERS)
+--------------------------------------------------------------------------------
+Industry-Specific Departments:
+* Every building category (Extractors, Factories, Retail, Services) has 3 custom departments mapping real-world business success factors:
+  - *Extractors*: Extraction Efficiency, Silo Capacity, Safety & Maintenance.
+  - *Factories*: Automation & Robotics, Material Science, Storage Logistics.
+  - *Retail* (Shops, Gas Stations): Visual Merchandising Display, Branding & Premium Placement, Store Floor Expansion.
+  - *Services*: Executive Expertise, Client Relations, Cost Accounting.
+* Upgraded building levels grant 1 Department Point (DP) per level. Players allocate these points (up to level 5 max per department) to unlock custom strategic buffs.
+
+Retail Gas Stations:
+* Added a new constructible Retail building: **Gas Station** (Costs $450, 15 Iron, 10 Lime, 5 Mortar, 25 Wood).
+* Gas Stations sell refined Fuel from your global warehouse directly to consumers, allowing you to establish a fuel retail pipeline from the start of the game.
+
+Locked Factory Specializations:
+* Factories are now permanently specialized upon placement.
+* Clicking to place a factory opens a popup selection modal prompting the player to choose a permanent recipe (e.g. Food Processing, Steel Smelting, Furniture Crafting). Once chosen, this recipe is locked, and the dropdown selector is removed from the Property Inspector.
+
+Factory Recipe Merger Safety Constraints:
+* Mergers now verify the specific recipe of factories.
+* For example, merging an Electricity Board HQ strictly checks for a Small Factory specialized in Coal Power Generation, ensuring your separate Furniture factories are protected and never accidentally consumed.
+
+Progression Locks:
+* Advancing business tiers is locked behind building levels and department milestones:
+  - *Showroom (Tier 2)*: Requires Building Level 10 + Store Expansion Department Level 3.
+  - *Dealership (Tier 3)*: Requires Building Level 25 + Store Expansion Department Level 5.
+
+Merger Quality Score Inheritance:
+* Merging component buildings into a Corporate HQ calculates a Brand Quality Score (average level score).
+* HQ passive revenues are scaled by this quality score (0% to 100%). Rushing merges with level 1 shops creates weak corporations, whereas maxing them out yields massive profits.
+
+Corporate Restructuring:
+* Players can pay $1,000 cash to hire consultants to reset allocated department points back to the unallocated pool.
+
+Decay Freezing for Paused Operations:
+* Extractor mines freeze decay wear completely (0% wear) if their local storage silos are full.
+* Factories freeze decay wear completely (0% wear) if their target production quotas are reached or if the global warehouse is too full to store their output.
+
+--------------------------------------------------------------------------------
+4. SIGNIFICANT BUG FIXES & STABILITY RESOLUTIONS
+--------------------------------------------------------------------------------
+* React StrictMode Double-Increments:
+  - Issue: Upgrades and level-ups jumped from level 1 to level 3 in React dev mode.
+  - Resolution: Refactored handleUpgradeBuilding, handleProgressTier, and handleUpgradeVehicleStat to use 100% pure, immutable mapping arrays (.map) rather than mutating nested state references directly.
+* Duplicate Company Keys:
+  - Issue: StrictMode double-execution caused key collision crashes (e.g. company-1783455916377).
+  - Resolution: Added key deduplication sanitation filters inside data loaders on load-mount.
+* Nested Config Mutation in Mergers:
+  - Issue: Merger executions mutated global config limits directly.
+  - Resolution: Deep-cloned merger requirements counts dynamically during evaluations.
+* Company HQ boardroom upgrades:
+  - Issue: The company boardroom tab was replaced in V0.2, leaving HQs un-upgradable.
+  - Resolution: Added Corporate HQ Level and department skill controls directly inside the Property Inspector.

@@ -1,0 +1,595 @@
+# Project Specification - Business Empire Prototype V0.1
+
+## Objective
+
+Build a browser-based single-player business simulation prototype to validate the core gameplay loop.
+
+This is **NOT** the final game. The objective is to determine whether building, optimizing, and expanding companies is enjoyable before adding multiplayer and alliance systems.
+
+---
+
+# Technology Stack
+
+Frontend
+
+* Next.js (App Router)
+* TypeScript
+* Tailwind CSS
+* React
+
+Backend
+
+* Supabase
+* PostgreSQL
+
+Hosting
+
+* Vercel
+
+Architecture Requirements
+
+* Clean Architecture
+* Modular Design
+* Reusable Systems
+* Future Multiplayer Ready
+
+---
+
+# Primary Goal
+
+The player should experience this gameplay loop:
+
+Build → Produce → Sell → Earn Money → Upgrade → Expand → Merge Companies → Repeat
+
+The codebase should be scalable enough to later support multiplayer without major rewrites.
+
+---
+
+# Prototype Scope
+
+Implement ONLY the following systems.
+
+## 1. Grid Map
+
+* 10×10 grid
+* Each tile represents one acre
+* Buildings occupy multiple tiles
+* Drag-and-place or click-to-place building system
+
+---
+
+## 2. Resources
+
+Implement only:
+
+* Iron
+* Coal
+* Cotton
+
+Each resource has a production building.
+
+---
+
+## 3. Buildings
+
+Implement:
+
+Iron Mine
+
+* Produces Iron
+
+Coal Mine
+
+* Produces Coal
+
+Cotton Farm
+
+* Produces Cotton
+
+Factory
+
+* Converts raw materials into products
+
+Warehouse
+
+* Stores products
+
+Marketing Office
+
+* Improves product demand
+
+Retail Shop
+
+* Sells finished goods
+
+Each building should have:
+
+* Level
+* Upgrade Cost
+* Production Rate
+* Maintenance Cost
+* Size
+
+---
+
+## 4. Economy
+
+Implement:
+
+* Money
+* Income
+* Expenses
+* Profit
+
+Player earns money by selling products.
+
+Player spends money on:
+
+* Buildings
+* Upgrades
+* Land
+* Skill Tree
+
+---
+
+## 5. Production Simulation
+
+Create a simulation engine.
+
+Example:
+
+Mine
+
+↓
+
+Raw Material
+
+↓
+
+Factory
+
+↓
+
+Finished Product
+
+↓
+
+Warehouse
+
+↓
+
+Retail Shop
+
+↓
+
+Money
+
+The simulation should run automatically using game ticks.
+
+Design it so future industries can be added without changing the engine.
+
+---
+
+## 6. Companies
+
+Implement one mergeable company.
+
+Clothing Brand
+
+Requirements:
+
+* 5 Retail Shops
+* 1 Factory
+* 1 Marketing Office
+
+When requirements are met:
+
+Show Merge button.
+
+Merge removes required buildings.
+
+Creates one Clothing Brand.
+
+Company should have:
+
+* Level
+* Revenue
+* Profit
+* Company Value
+
+---
+
+## 7. Company Skill Tree
+
+Every company has three branches.
+
+Production
+
+Example upgrades:
+
+* Production Speed
+* Resource Efficiency
+* Automation
+
+Marketing
+
+Example upgrades:
+
+* Customer Reach
+* Brand Awareness
+* Product Demand
+
+Finance
+
+Example upgrades:
+
+* Reduced Costs
+* Higher Profit Margin
+* Better Cash Flow
+
+Skills are purchased using ONLY in-game money.
+
+No premium currency.
+
+---
+
+## 8. Company Valuation
+
+Calculate company value using:
+
+* Revenue
+* Profit
+* Level
+* Skill Investments
+* Production Efficiency
+
+Display valuation to player.
+
+---
+
+## 9. Dashboard
+
+Display:
+
+* Current Money
+* Income
+* Expenses
+* Profit
+* Available Land
+* Company Value
+* Production Status
+
+---
+
+## 10. Save System
+
+Use Supabase.
+
+Save:
+
+* Buildings
+* Resources
+* Money
+* Companies
+* Skill Trees
+
+Auto-save every 30 seconds.
+
+---
+
+# User Experience
+
+Focus on functionality.
+
+Simple UI.
+
+Placeholder icons are acceptable.
+
+No advanced graphics required.
+
+Gameplay is more important than visuals.
+
+---
+
+# Architecture Requirements
+
+Separate the project into independent modules.
+
+Suggested structure:
+
+/simulation
+
+/economy
+
+/buildings
+
+/resources
+
+/companies
+
+/skills
+
+/ui
+
+/database
+
+The simulation engine should not depend on the UI.
+
+The UI should simply visualize the simulation state.
+
+---
+
+# Future Expansion
+
+The architecture must allow future implementation of:
+
+* Multiplayer
+* Alliances
+* CEOs
+* Managers
+* Builders
+* Trading
+* Loans
+* World Map
+* Regional Buffs
+* Events
+* Seasonal Servers
+* Territory Control
+
+These features should NOT be implemented now.
+
+Only ensure the architecture can support them later.
+
+---
+
+# Features NOT to Build
+
+Do NOT implement:
+
+* Multiplayer
+* Alliances
+* CEOs
+* Managers
+* Builders
+* Premium Currency
+* Events
+* Trading
+* Loans
+* PvP
+* World Map
+* KVK
+* Cosmetics
+
+---
+
+# Development Priorities
+
+Priority 1
+
+* Architecture
+* Database
+* Grid
+* Building Placement
+
+Priority 2
+
+* Economy
+* Production Simulation
+
+Priority 3
+
+* Company Merge
+* Skill Tree
+
+Priority 4
+
+* Save System
+* UI Polish
+
+---
+
+# Success Criteria
+
+The prototype is successful if:
+
+* The player can build an economic layout.
+* Resources flow correctly.
+* Companies generate profit.
+* Company merging works.
+* Skill tree progression feels meaningful.
+* The gameplay loop encourages continued optimization.
+
+Prioritize clean architecture, scalability, and maintainability over feature quantity or graphics.
+
+
+## Clarifications for Prototype V0.1
+
+### 1. Simulation Tick Rate
+
+Use a **1-second game tick**.
+
+Every second:
+
+* Update production
+* Consume required resources
+* Generate finished products
+* Calculate income
+* Update expenses
+* Refresh UI
+
+The simulation should **only run while the game is open**.
+
+If the browser tab is inactive or closed:
+
+* Pause the simulation.
+* Do not calculate offline progress.
+
+Offline progression can be added in a future version.
+
+---
+
+### 2. Building Placement Rules
+
+For the prototype:
+
+* Buildings cannot overlap.
+* Buildings must stay completely inside the map.
+* Rotation is **not required**.
+* Buildings may be moved freely.
+* Buildings may be demolished at any time.
+* Demolishing returns **50%** of the building cost.
+* No adjacency bonuses.
+* No spacing rules.
+* Ignore roads and logistics connections.
+
+The goal is to validate gameplay, not city-building mechanics.
+
+---
+
+### 3. Economy & Balancing
+
+You may design reasonable placeholder formulas.
+
+The formulas should be modular and easy to modify later.
+
+Examples:
+
+* Production Rate
+* Upgrade Cost
+* Maintenance Cost
+* Resource Consumption
+* Company Value
+
+Do **not** hardcode values throughout the project.
+
+Keep all balancing values in centralized configuration files.
+
+---
+
+### 4. Company Merge
+
+Prototype merge:
+
+Requirements:
+
+* 5 Retail Shops
+* 1 Factory
+* 1 Marketing Office
+
+When merged:
+
+* Remove required buildings.
+* Create one Clothing Brand.
+* Preserve company statistics.
+
+No animations required.
+
+---
+
+### 5. Company Valuation
+
+Use a simple placeholder formula.
+
+Example:
+
+Company Value =
+(Revenue × 30)
++
+(Profit × 60)
++
+(Level × 1000)
++
+(Skill Points × 500)
+
+The formula only needs to demonstrate the system.
+
+---
+
+### 6. Save System
+
+Use Supabase.
+
+For Version 0.1:
+
+* Anonymous single-player save is sufficient.
+* One save slot per player.
+* Auto-save every 30 seconds.
+* Manual save button is optional.
+
+No authentication system is required yet.
+
+---
+
+### 7. UI
+
+Keep the interface simple.
+
+Prioritize:
+
+* usability
+* readability
+* debugging
+
+Placeholder icons and simple shapes are completely acceptable.
+
+---
+
+### 8. Overall Goal
+
+The objective is **not** to build a polished game.
+
+The objective is to validate whether the gameplay loop:
+
+Build → Produce → Sell → Upgrade → Merge → Expand
+
+is enjoyable enough to justify further development.
+
+
+Don't optimize for graphics or polish. Optimize for clean architecture and gameplay iteration. Every gameplay value should be easy to rebalance without changing the code.
+
+## Building Footprints (Prototype V0.1)
+
+Map Size:
+
+* 10 × 10 Grid (100 Tiles)
+
+Building Sizes:
+
+| Building                        | Size  |
+| ------------------------------- | ----- |
+| Iron Mine                       | 2 × 2 |
+| Coal Mine                       | 2 × 2 |
+| Cotton Farm                     | 2 × 2 |
+| Factory                         | 3 × 3 |
+| Warehouse                       | 2 × 2 |
+| Marketing Office                | 2 × 2 |
+| Retail Shop                     | 1 × 1 |
+| Clothing Brand (Merged Company) | 4 × 4 |
+
+Notes:
+
+* Buildings cannot overlap.
+* Buildings can be moved.
+* Buildings can be demolished.
+* No rotation is required.
+* No adjacency bonuses.
+* No roads.
+* No spacing restrictions.
+* The merge should replace the required buildings with a single Clothing Brand building.
+
+
+NOT to hardcode these values.
+
+Ask it to create a configuration file like:
+
+/buildingConfig.ts
+
+{
+  factory: {
+    width: 3,
+    height: 3,
+    cost: ...
+  }
+}
+
+That way, if next week you decide the Factory should be 4×3 instead of 3×3, you only change one file instead of searching through the entire codebase.
