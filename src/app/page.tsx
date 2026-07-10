@@ -37,7 +37,13 @@ import {
   MERGERS_CONFIG, 
   VEHICLE_CONFIGS 
 } from "../buildings/buildingConfig";
-import { DEPARTMENTS_BY_CATEGORY } from "../buildings/departmentConfig";
+import { 
+  BUSINESS_SKILLS, 
+  UNIVERSAL_EXTRACTOR_SKILLS, 
+  UNIQUE_EXTRACTOR_SKILLS, 
+  UNIVERSAL_CORPORATE_SKILLS, 
+  UNIQUE_CORPORATE_SKILLS 
+} from "../buildings/departmentConfig";
 import { runSimulationTick, TickResult } from "../simulation/simulationEngine";
 import { GameState, saveGame, loadGame, isSupabaseConfigured } from "../database/supabaseClient";
 
@@ -87,7 +93,7 @@ export default function BusinessEmpireGame() {
     money: 5000,
     resources: {
       iron_ore: 70,
-      limestone: 70,
+      stone: 70,
       mortar: 70,
       wood: 70,
     },
@@ -117,6 +123,8 @@ export default function BusinessEmpireGame() {
   const [mergerQualityScore, setMergerQualityScore] = useState<number | null>(null);
   const [pendingFactoryPlacementId, setPendingFactoryPlacementId] = useState<string | null>(null);
   const [catalogCategory, setCatalogCategory] = useState<"infrastructure" | "extraction" | "industry" | "commerce">("extraction");
+  const [isBuildMenuOpen, setIsBuildMenuOpen] = useState<boolean>(false);
+  const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(false);
   
   // Simulation Ticker Statistics
   const [lastTickStats, setLastTickStats] = useState<{
@@ -157,7 +165,7 @@ export default function BusinessEmpireGame() {
           saved.resources = {};
         }
         saved.resources.iron_ore = Math.max(saved.resources.iron_ore || 0, 70);
-        saved.resources.limestone = Math.max(saved.resources.limestone || 0, 70);
+        saved.resources.stone = Math.max(saved.resources.stone || 0, 70);
         saved.resources.mortar = Math.max(saved.resources.mortar || 0, 70);
         saved.resources.wood = Math.max(saved.resources.wood || 0, 70);
         delete saved.resources.cotton; // Remove cotton
@@ -219,7 +227,7 @@ export default function BusinessEmpireGame() {
         money: 5000,
         resources: {
           iron_ore: 70,
-          limestone: 70,
+          stone: 70,
           mortar: 70,
           wood: 70,
         },
@@ -353,7 +361,7 @@ export default function BusinessEmpireGame() {
       if (placingType === "road") {
         const hasRoadResources = 
           gameState.money >= 10 &&
-          (gameState.resources.limestone || 0) >= 1 &&
+          (gameState.resources.stone || 0) >= 1 &&
           (gameState.resources.wood || 0) >= 1;
 
         const isRoadOccupied = 
@@ -366,7 +374,7 @@ export default function BusinessEmpireGame() {
         if (hasRoadResources && !isRoadOccupied) {
           setGameState(prev => {
             const updatedResources = { ...prev.resources };
-            updatedResources.limestone = Math.max(0, (updatedResources.limestone || 0) - 1);
+            updatedResources.stone = Math.max(0, (updatedResources.stone || 0) - 1);
             updatedResources.wood = Math.max(0, (updatedResources.wood || 0) - 1);
 
             return {
@@ -401,11 +409,7 @@ export default function BusinessEmpireGame() {
                   level: 1,
                   revenue: 0,
                   profit: 0,
-                  skills: {
-                    production: 0,
-                    marketing: 0,
-                    finance: 0,
-                  },
+                  skills: {},
                   qualityScore: mergerQualityScore !== null ? mergerQualityScore : 50
                 }
               ]
@@ -421,7 +425,7 @@ export default function BusinessEmpireGame() {
       const hasResources = 
         gameState.money >= config.baseCost &&
         (gameState.resources.iron_ore || 0) >= (config.baseIronCost || 0) &&
-        (gameState.resources.limestone || 0) >= (config.baseStoneCost || 0) &&
+        (gameState.resources.stone || 0) >= (config.baseStoneCost || 0) &&
         (gameState.resources.mortar || 0) >= (config.baseMortarCost || 0) &&
         (gameState.resources.wood || 0) >= (config.baseWoodCost || 0);
 
@@ -459,7 +463,7 @@ export default function BusinessEmpireGame() {
 
           const updatedResources = { ...prev.resources };
           updatedResources.iron_ore = Math.max(0, (updatedResources.iron_ore || 0) - (config.baseIronCost || 0));
-          updatedResources.limestone = Math.max(0, (updatedResources.limestone || 0) - (config.baseStoneCost || 0));
+          updatedResources.stone = Math.max(0, (updatedResources.stone || 0) - (config.baseStoneCost || 0));
           updatedResources.mortar = Math.max(0, (updatedResources.mortar || 0) - (config.baseMortarCost || 0));
           updatedResources.wood = Math.max(0, (updatedResources.wood || 0) - (config.baseWoodCost || 0));
 
@@ -498,6 +502,7 @@ export default function BusinessEmpireGame() {
 
     if (clickedBuilding) {
       setSelectedBuildingId(clickedBuilding.id);
+      setIsInspectorOpen(true);
       return;
     }
 
@@ -508,10 +513,12 @@ export default function BusinessEmpireGame() {
 
     if (clickedCompany) {
       setSelectedBuildingId(clickedCompany.id);
+      setIsInspectorOpen(true);
       return;
     }
 
     setSelectedBuildingId(null);
+    setIsInspectorOpen(false);
   };
 
   const handleDemolish = (id: string) => {
@@ -529,6 +536,7 @@ export default function BusinessEmpireGame() {
       };
     });
     setSelectedBuildingId(null);
+    setIsInspectorOpen(false);
   };
 
   const handleUpgradeBuilding = (id: string) => {
@@ -561,14 +569,14 @@ export default function BusinessEmpireGame() {
       const hasResources = 
         prev.money >= moneyCost &&
         (prev.resources.iron_ore || 0) >= ironCost &&
-        (prev.resources.limestone || 0) >= stoneCost &&
+        (prev.resources.stone || 0) >= stoneCost &&
         (prev.resources.mortar || 0) >= mortarCost &&
         (prev.resources.wood || 0) >= woodCost;
 
       if (hasResources) {
         const updatedResources = { ...prev.resources };
         updatedResources.iron_ore = Math.max(0, (updatedResources.iron_ore || 0) - ironCost);
-        updatedResources.limestone = Math.max(0, (updatedResources.limestone || 0) - stoneCost);
+        updatedResources.stone = Math.max(0, (updatedResources.stone || 0) - stoneCost);
         updatedResources.mortar = Math.max(0, (updatedResources.mortar || 0) - mortarCost);
         updatedResources.wood = Math.max(0, (updatedResources.wood || 0) - woodCost);
 
@@ -611,32 +619,46 @@ export default function BusinessEmpireGame() {
     const currentTier = targetB.progressionLevel || 1;
     if (currentTier >= 3) return;
 
-    // V0.4 Progression constraints
-    const configCategory = config.category;
-    let expansionDeptId = "";
-    if (configCategory === "extractor") expansionDeptId = "capacity";
-    else if (configCategory === "factory") expansionDeptId = "silo";
-    else if (configCategory === "retail") expansionDeptId = "expansion";
-    else if (configCategory === "service") expansionDeptId = "relations";
+    // V0.6 Promotion rules:
+    // Shop -> Showroom: Level 15 + Expansion-related skill level 3
+    // Showroom -> Dealership: Level 30 + Expansion-related skill level 5
+    
+    // Dynamic lookup helper for expansion skill IDs
+    const getExpansionSkillId = (buildingType: string): string => {
+      if (buildingType === "clothing_shop") return "expansion";
+      if (buildingType === "furniture_shop") return "showroom_space";
+      if (buildingType === "food_shop") return "seating_capacity";
+      if (buildingType === "grocery_shop") return "inventory_management";
+      if (buildingType === "medical_shop") return "medicine_inventory";
+      if (buildingType === "electronics_shop") return "expansion";
+      if (buildingType === "gas_station") return "fuel_tanks";
+      if (buildingType === "interior_design_studio") return "expansion";
+      if (buildingType === "architecture_firm") return "office_space";
+      if (buildingType === "consulting_firm") return "expansion";
+      if (buildingType === "garage") return "workshop_space";
+      if (buildingType === "hotel") return "resort_expansion";
+      return "expansion"; // default fallback
+    };
 
-    const expansionLvl = targetB.departments?.[expansionDeptId] || 0;
+    const expansionSkillId = getExpansionSkillId(targetB.type);
+    const expansionLvl = targetB.departments?.[expansionSkillId] || 0;
 
     if (currentTier === 1) {
-      if (targetB.level < 10) {
-        alert("Progression Blocked: Building must reach Level 10 first.");
+      if (targetB.level < 15) {
+        alert("Progression Blocked: Building must reach Level 15 first.");
         return;
       }
       if (expansionLvl < 3) {
-        alert("Progression Blocked: Requires Capacity / Store Expansion Department Level 3.");
+        alert(`Progression Blocked: Requires Expansion-related skill (${expansionSkillId}) Level 3.`);
         return;
       }
     } else if (currentTier === 2) {
-      if (targetB.level < 25) {
-        alert("Progression Blocked: Building must reach Level 25 first.");
+      if (targetB.level < 30) {
+        alert("Progression Blocked: Building must reach Level 30 first.");
         return;
       }
       if (expansionLvl < 5) {
-        alert("Progression Blocked: Requires Capacity / Store Expansion Department Level 5.");
+        alert(`Progression Blocked: Requires Expansion-related skill (${expansionSkillId}) Level 5.`);
         return;
       }
     }
@@ -654,14 +676,14 @@ export default function BusinessEmpireGame() {
       const hasResources = 
         prev.money >= moneyCost &&
         (prev.resources.iron_ore || 0) >= ironCost &&
-        (prev.resources.limestone || 0) >= stoneCost &&
+        (prev.resources.stone || 0) >= stoneCost &&
         (prev.resources.mortar || 0) >= mortarCost &&
         (prev.resources.wood || 0) >= woodCost;
 
       if (hasResources) {
         const updatedResources = { ...prev.resources };
         updatedResources.iron_ore = Math.max(0, (updatedResources.iron_ore || 0) - ironCost);
-        updatedResources.limestone = Math.max(0, (updatedResources.limestone || 0) - stoneCost);
+        updatedResources.stone = Math.max(0, (updatedResources.stone || 0) - stoneCost);
         updatedResources.mortar = Math.max(0, (updatedResources.mortar || 0) - mortarCost);
         updatedResources.wood = Math.max(0, (updatedResources.wood || 0) - woodCost);
 
@@ -912,32 +934,26 @@ export default function BusinessEmpireGame() {
   };
 
   // Upgrade company skills
-  const handleUpgradeCompanySkill = (companyId: string, skill: "production" | "marketing" | "finance") => {
+  const handleUpgradeCompanySkill = (companyId: string, skillId: string) => {
     setGameState(prev => {
       const company = prev.companies.find(c => c.id === companyId);
       if (!company) return prev;
 
-      const currentLevel = company.skills[skill] || 0;
-      const cost = (currentLevel + 1) * 2000;
+      const spentPoints = Object.values(company.skills || {}).reduce((sum: number, val) => sum + (val as number), 0);
+      const availablePoints = company.level - spentPoints;
+      if (availablePoints <= 0) return prev;
 
-      if (prev.money >= cost) {
-        return {
-          ...prev,
-          money: prev.money - cost,
-          companies: prev.companies.map(c => 
-            c.id === companyId 
-              ? { 
-                  ...c, 
-                  skills: { 
-                    ...c.skills, 
-                    [skill]: currentLevel + 1 
-                  } 
-                } 
-              : c
-          )
-        };
-      }
-      return prev;
+      const currentLvl = company.skills[skillId] || 0;
+      if (currentLvl >= 5) return prev; // max cap 5
+
+      const updatedSkills = { ...company.skills, [skillId]: currentLvl + 1 };
+
+      return {
+        ...prev,
+        companies: prev.companies.map(c => 
+          c.id === companyId ? { ...c, skills: updatedSkills } : c
+        )
+      };
     });
   };
 
@@ -965,7 +981,7 @@ export default function BusinessEmpireGame() {
     });
 
     // Validate if current building counts satisfy the requirements
-    return Object.entries(merger.requirements).every(([reqType, req]) => {
+    const satisfiesBuildings = Object.entries(merger.requirements).every(([reqType, req]) => {
       let lookupKey = reqType;
       if (reqType === "small_factory") {
         if (mergerId === "clothing_company") lookupKey = "small_factory_fabric_weaving";
@@ -979,6 +995,22 @@ export default function BusinessEmpireGame() {
       const count = currentCounts[lookupKey] || 0;
       return count >= req.qty;
     });
+
+    if (!satisfiesBuildings) return false;
+
+    // Verify construction resource costs
+    const hqConfig = BUILDING_CONFIGS[merger.hqBuildingType];
+    if (hqConfig) {
+      const hasResources =
+        gameState.money >= hqConfig.baseCost &&
+        (gameState.resources.iron_ore || 0) >= hqConfig.baseIronCost &&
+        (gameState.resources.stone || 0) >= hqConfig.baseStoneCost &&
+        (gameState.resources.mortar || 0) >= hqConfig.baseMortarCost &&
+        (gameState.resources.wood || 0) >= hqConfig.baseWoodCost;
+      if (!hasResources) return false;
+    }
+
+    return true;
   };
 
   const handleExecuteMerger = (mergerId: string) => {
@@ -1063,8 +1095,19 @@ export default function BusinessEmpireGame() {
         return true;
       });
 
+      const hqConfig = BUILDING_CONFIGS[merger.hqBuildingType];
+      const updatedResources = { ...prev.resources };
+      if (hqConfig) {
+        updatedResources.iron_ore = Math.max(0, (updatedResources.iron_ore || 0) - hqConfig.baseIronCost);
+        updatedResources.stone = Math.max(0, (updatedResources.stone || 0) - hqConfig.baseStoneCost);
+        updatedResources.mortar = Math.max(0, (updatedResources.mortar || 0) - hqConfig.baseMortarCost);
+        updatedResources.wood = Math.max(0, (updatedResources.wood || 0) - hqConfig.baseWoodCost);
+      }
+
       return {
         ...prev,
+        money: prev.money - (hqConfig?.baseCost || 0),
+        resources: updatedResources,
         buildings: updatedBuildings
       };
     });
@@ -1147,12 +1190,12 @@ export default function BusinessEmpireGame() {
 
           <div className="h-6 w-[1px] bg-neutral-800" />
 
-          <div className="flex items-center gap-2" title="Limestone Stock">
+          <div className="flex items-center gap-2" title="Stone Stock">
             <Mountain className="h-4 w-4 text-stone-400" />
             <span className="text-sm font-bold font-mono text-stone-200">
-              {Math.floor(gameState.resources.limestone || 0)}
+              {Math.floor(gameState.resources.stone || 0)}
             </span>
-            <span className="text-[10px] text-neutral-500 font-medium">Lime</span>
+            <span className="text-[10px] text-neutral-500 font-medium">Stone</span>
           </div>
 
           <div className="h-6 w-[1px] bg-neutral-800" />
@@ -1285,216 +1328,7 @@ export default function BusinessEmpireGame() {
                 <div className="text-neutral-600 italic py-2 text-center">Warehouse storage empty.</div>
               )}
             </div>
-          </div>
-
-          {/* Construction Shop */}
-          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col justify-between">
-            <div>
-              <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                <Store className="h-4 w-4 text-amber-500" />
-                Construction Catalog
-              </h2>
-              <div className="grid grid-cols-4 gap-1 bg-neutral-950 p-1 rounded-xl border border-neutral-850 mb-4 text-[9px] font-bold text-center">
-                <button
-                  onClick={() => setCatalogCategory("infrastructure")}
-                  className={`py-1.5 rounded-lg transition uppercase ${catalogCategory === "infrastructure" ? "bg-indigo-900/60 text-white font-extrabold" : "text-neutral-400 hover:text-neutral-200"}`}
-                >
-                  Infra
-                </button>
-                <button
-                  onClick={() => setCatalogCategory("extraction")}
-                  className={`py-1.5 rounded-lg transition uppercase ${catalogCategory === "extraction" ? "bg-amber-900/60 text-white font-extrabold" : "text-neutral-400 hover:text-neutral-200"}`}
-                >
-                  Extract
-                </button>
-                <button
-                  onClick={() => setCatalogCategory("industry")}
-                  className={`py-1.5 rounded-lg transition uppercase ${catalogCategory === "industry" ? "bg-orange-850/60 text-white font-extrabold" : "text-neutral-400 hover:text-neutral-200"}`}
-                >
-                  Factory
-                </button>
-                <button
-                  onClick={() => setCatalogCategory("commerce")}
-                  className={`py-1.5 rounded-lg transition uppercase ${catalogCategory === "commerce" ? "bg-emerald-850/60 text-white font-extrabold" : "text-neutral-400 hover:text-neutral-200"}`}
-                >
-                  Retail
-                </button>
-              </div>
-
-              <div className="flex flex-col gap-2.5 max-h-[350px] overflow-y-auto pr-1">
-                {/* V0.5 Road Building Option (Infra tab only) */}
-                {catalogCategory === "infrastructure" && (() => {
-                  const isPlacing = placingType === "road";
-                  const hasResources = 
-                    gameState.money >= 10 &&
-                    (gameState.resources.limestone || 0) >= 1 &&
-                    (gameState.resources.wood || 0) >= 1;
-                  return (
-                    <div 
-                      className={`p-3 rounded-xl border transition-all flex items-center justify-between ${
-                        isPlacing 
-                          ? "bg-amber-500/10 border-amber-500" 
-                          : "bg-neutral-950/40 border-neutral-800 hover:border-neutral-700"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="w-3.5 h-3.5 rounded shrink-0 bg-neutral-700 border border-neutral-500" />
-                        <div>
-                          <div className="text-xs font-bold flex items-center gap-1.5">
-                            Transit Road
-                            <span className="text-[9px] text-neutral-500 font-mono">(1x1)</span>
-                          </div>
-                          <p className="text-[10px] text-neutral-450 mt-0.5 leading-normal max-w-[200px]">
-                            Lays a road tile. Connects structures. Adds +0.5% hauling speed multiplier per tile.
-                          </p>
-                          <div className="flex gap-2 mt-1 font-mono text-[9px]">
-                            <span className={gameState.money >= 10 ? "text-emerald-400" : "text-rose-400 font-bold"}>$10</span>
-                            <span className={(gameState.resources.limestone || 0) >= 1 ? "text-stone-400" : "text-rose-400 font-bold"}>1 Lime</span>
-                            <span className={(gameState.resources.wood || 0) >= 1 ? "text-green-400" : "text-rose-400 font-bold"}>1 Wood</span>
-                          </div>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => {
-                          if (isPlacing) setPlacingType(null);
-                          else {
-                            setPlacingType("road");
-                            setMovingBuildingId(null);
-                          }
-                        }}
-                        disabled={!hasResources && !isPlacing}
-                        className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold font-mono transition shrink-0 ${
-                          isPlacing 
-                            ? "bg-amber-500 text-neutral-950" 
-                            : hasResources 
-                              ? "bg-neutral-850 hover:bg-neutral-750 text-white" 
-                              : "bg-neutral-900 text-neutral-655 cursor-not-allowed"
-                        }`}
-                      >
-                        {isPlacing ? "Placing..." : "Build"}
-                      </button>
-                    </div>
-                  );
-                })()}
-
-                {Object.entries(BUILDING_CONFIGS)
-                  .filter(([_, config]) => {
-                    if (config.category === "hq") return false;
-                    
-                    let mappedCategory = "";
-                    if (config.category === "extractor") mappedCategory = "extraction";
-                    else if (config.category === "factory") mappedCategory = "industry";
-                    else if (config.category === "retail" || config.category === "service") mappedCategory = "commerce";
-                    else mappedCategory = "infrastructure"; // warehouse, logistics, bank, tourism, infrastructure
-
-                    return mappedCategory === catalogCategory;
-                  })
-                  .map(([key, config]) => {
-                    const cost = config.baseCost;
-                    const isPlacing = placingType === key;
-                    const hasResources = 
-                      gameState.money >= cost &&
-                      (gameState.resources.iron_ore || 0) >= (config.baseIronCost || 0) &&
-                      (gameState.resources.limestone || 0) >= (config.baseStoneCost || 0) &&
-                      (gameState.resources.mortar || 0) >= (config.baseMortarCost || 0) &&
-                      (gameState.resources.wood || 0) >= (config.baseWoodCost || 0);
-
-                    return (
-                      <div 
-                        key={key}
-                        className={`p-3 rounded-xl border transition-all flex items-center justify-between ${
-                          isPlacing 
-                            ? "bg-amber-500/10 border-amber-500" 
-                            : "bg-neutral-950/40 border-neutral-800 hover:border-neutral-700"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className={`w-3.5 h-3.5 rounded shrink-0 ${config.color}`} />
-                          <div>
-                            <div className="text-xs font-bold flex items-center gap-1.5">
-                              {config.name}
-                              <span className="text-[9px] text-neutral-500 font-mono">
-                                ({config.width}x{config.height})
-                              </span>
-                            </div>
-                            <p className="text-[10px] text-neutral-400 mt-0.5 leading-normal max-w-[200px]">
-                              {config.description}
-                            </p>
-                            
-                            {/* Cost list details */}
-                            <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1 font-mono text-[9px]">
-                              <span className={gameState.money >= cost ? "text-emerald-400" : "text-rose-400 font-bold"}>
-                                ${cost}
-                              </span>
-                              {(config.baseIronCost || 0) > 0 && (
-                                <span className={(gameState.resources.iron_ore || 0) >= (config.baseIronCost || 0) ? "text-slate-300" : "text-rose-400 font-bold"}>
-                                  {config.baseIronCost} Iron
-                                </span>
-                              )}
-                              {(config.baseStoneCost || 0) > 0 && (
-                                <span className={(gameState.resources.limestone || 0) >= (config.baseStoneCost || 0) ? "text-stone-400" : "text-rose-400 font-bold"}>
-                                  {config.baseStoneCost} Lime
-                                </span>
-                              )}
-                              {(config.baseMortarCost || 0) > 0 && (
-                                <span className={(gameState.resources.mortar || 0) >= (config.baseMortarCost || 0) ? "text-amber-500" : "text-rose-400 font-bold"}>
-                                  {config.baseMortarCost} Mortar
-                                </span>
-                              )}
-                              {(config.baseWoodCost || 0) > 0 && (
-                                <span className={(gameState.resources.wood || 0) >= (config.baseWoodCost || 0) ? "text-green-400 font-semibold" : "text-rose-400 font-bold"}>
-                                  {config.baseWoodCost} Wood
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        <button
-                          onClick={() => {
-                            if (isPlacing) setPlacingType(null);
-                            else {
-                              setPlacingType(key);
-                              setMovingBuildingId(null);
-                            }
-                          }}
-                          disabled={!hasResources && !isPlacing}
-                          className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold font-mono transition shrink-0 ${
-                            isPlacing 
-                              ? "bg-amber-500 text-neutral-950" 
-                              : hasResources 
-                                ? "bg-neutral-800 hover:bg-neutral-750 text-white" 
-                                : "bg-neutral-900 text-neutral-600 cursor-not-allowed"
-                          }`}
-                        >
-                          {isPlacing ? "Placing..." : "Build"}
-                        </button>
-                      </div>
-                    );
-                  })}
-              </div>
-            </div>
-
-            {(placingType || movingBuildingId) && (
-              <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-between text-xs">
-                <span className="text-amber-300 font-medium">
-                  {movingBuildingId 
-                    ? "Select relocation tile on grid" 
-                    : `Placing: ${placingType === "road" ? "Transit Road" : (BUILDING_CONFIGS[placingType || ""]?.name || "")}`}
-                </span>
-                <button
-                  onClick={() => {
-                    setPlacingType(null);
-                    setMovingBuildingId(null);
-                  }}
-                  className="text-neutral-400 hover:text-white px-2 py-0.5 bg-neutral-800 hover:bg-neutral-750 rounded"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+                  </div>  </div>
 
         {/* RIGHT COLUMN: Tab selection and Main panels */}
         <div className="lg:col-span-8 flex flex-col gap-6">
@@ -1535,12 +1369,31 @@ export default function BusinessEmpireGame() {
 
           {/* TAB 1: Grid Map */}
           {activeTab === "map" && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              
+            <div className="flex flex-col gap-4 w-full relative">
+              {/* Construction/Placing mode warning indicator */}
+              {(placingType || movingBuildingId) && (
+                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-between text-xs animate-in slide-in-from-top duration-200">
+                  <span className="text-amber-300 font-medium">
+                    {movingBuildingId 
+                      ? "Select relocation tile on grid" 
+                      : `Placing: ${placingType === "road" ? "Transit Road" : (BUILDING_CONFIGS[placingType || ""]?.name || "")}`}
+                  </span>
+                  <button
+                    onClick={() => {
+                      setPlacingType(null);
+                      setMovingBuildingId(null);
+                    }}
+                    className="text-neutral-400 hover:text-white px-2.5 py-1 bg-neutral-800 hover:bg-neutral-750 rounded-lg text-[10px] font-bold"
+                  >
+                    Cancel Placement
+                  </button>
+                </div>
+              )}
+
               {/* Grid visualization */}
-              <div className="md:col-span-2 bg-neutral-900 border border-neutral-800 rounded-2xl p-4 shadow-xl flex flex-col items-center">
+              <div className="w-full bg-neutral-900 border border-neutral-800 rounded-2xl p-4 shadow-xl flex flex-col items-center">
                 <div className="text-[10px] text-neutral-500 font-mono mb-2 self-start flex justify-between w-full">
-                  <span>Hover tiles to inspect. Click to build.</span>
+                  <span>Hover tiles to inspect. Click to select building.</span>
                   <span>GridSize: 20x20</span>
                 </div>
                 <div className="w-full border border-neutral-850 rounded-xl bg-neutral-950 p-1.5">
@@ -1584,16 +1437,13 @@ export default function BusinessEmpireGame() {
                               ? { width: 1, height: 1 }
                               : (BUILDING_CONFIGS[placingType || ""] || (movingBuildingId ? BUILDING_CONFIGS[gameState.buildings.find(b => b.id === movingBuildingId)?.type || ""] : null));
                             if (configToPlace) {
-                              const inRangeX = x >= hoverTile.x && x < hoverTile.x + configToPlace.width;
-                              const inRangeY = y >= hoverTile.y && y < hoverTile.y + configToPlace.height;
-                              if (inRangeX && inRangeY) {
+                              const w = configToPlace.width;
+                              const h = configToPlace.height;
+                              if (x >= hoverTile.x && x < hoverTile.x + w && y >= hoverTile.y && y < hoverTile.y + h) {
                                 isHoverOverlay = true;
-                                isValidPlacement = canPlaceBuilding(
-                                  placingType || gameState.buildings.find(b => b.id === movingBuildingId)!.type, 
-                                  hoverTile.x, 
-                                  hoverTile.y,
-                                  movingBuildingId
-                                );
+                                isValidPlacement = placingType === "road"
+                                  ? !activeCell && !isRoad
+                                  : canPlaceBuilding(placingType || (movingBuildingId ? (gameState.buildings.find(b => b.id === movingBuildingId)?.type || "") : ""), hoverTile.x, hoverTile.y, movingBuildingId || undefined);
                               }
                             }
                           }
@@ -1602,7 +1452,7 @@ export default function BusinessEmpireGame() {
                             <div
                               key={`${x}-${y}`}
                               onClick={() => handleGridClick(x, y)}
-                              onMouseEnter={() => (placingType || movingBuildingId) && setHoverTile({ x, y })}
+                              onMouseEnter={() => setHoverTile({ x, y })}
                               onMouseLeave={() => setHoverTile(null)}
                               title={
                                 activeCell 
@@ -1664,31 +1514,228 @@ export default function BusinessEmpireGame() {
                 </div>
               </div>
 
-              {/* Inspector Panel */}
-              <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
-                <div>
-                  <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
-                    <Info className="h-4 w-4 text-amber-500" />
-                    Property Inspector
-                  </h3>
+              {/* Floating Hammer Build Button */}
+              {!placingType && !movingBuildingId && (
+                <button
+                  onClick={() => setIsBuildMenuOpen(true)}
+                  className="fixed bottom-8 right-8 z-40 p-4 bg-amber-500 hover:bg-amber-400 text-neutral-950 rounded-full shadow-2xl transition hover:scale-110 active:scale-95 flex items-center justify-center border-4 border-neutral-900 group"
+                  title="Open Build Menu"
+                >
+                  <Hammer className="h-6 w-6 font-black animate-pulse" />
+                  <span className="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 ease-in-out font-sans text-xs font-black uppercase tracking-wider">
+                    Build
+                  </span>
+                </button>
+              )}
 
-                  {selectedInfo && bObj ? (
-                    <div className="space-y-4 text-xs">
+              {/* Build Menu Catalog Modal */}
+              {isBuildMenuOpen && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                  <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-2xl w-full max-w-lg space-y-4 shadow-2xl flex flex-col max-h-[85vh]">
+                    <div className="flex justify-between items-center pb-2 border-b border-neutral-850">
+                      <h2 className="text-sm font-black text-neutral-100 uppercase tracking-wider flex items-center gap-2">
+                        <Store className="h-4 w-4 text-amber-500" />
+                        Construction Catalog
+                      </h2>
+                      <button
+                        onClick={() => setIsBuildMenuOpen(false)}
+                        className="text-neutral-400 hover:text-white font-bold text-xs bg-neutral-800 hover:bg-neutral-750 px-2.5 py-1 rounded-lg transition"
+                      >
+                        ✕ Close
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-1 bg-neutral-950 p-1 rounded-xl border border-neutral-850 text-[10px] font-bold text-center">
+                      <button
+                        onClick={() => setCatalogCategory("infrastructure")}
+                        className={`py-2 rounded-lg transition uppercase ${catalogCategory === "infrastructure" ? "bg-indigo-900/60 text-white font-extrabold" : "text-neutral-400 hover:text-neutral-200"}`}
+                      >
+                        Infra
+                      </button>
+                      <button
+                        onClick={() => setCatalogCategory("extraction")}
+                        className={`py-2 rounded-lg transition uppercase ${catalogCategory === "extraction" ? "bg-amber-900/60 text-white font-extrabold" : "text-neutral-400 hover:text-neutral-200"}`}
+                      >
+                        Extract
+                      </button>
+                      <button
+                        onClick={() => setCatalogCategory("industry")}
+                        className={`py-2 rounded-lg transition uppercase ${catalogCategory === "industry" ? "bg-orange-850/60 text-white font-extrabold" : "text-neutral-400 hover:text-neutral-200"}`}
+                      >
+                        Factory
+                      </button>
+                      <button
+                        onClick={() => setCatalogCategory("commerce")}
+                        className={`py-2 rounded-lg transition uppercase ${catalogCategory === "commerce" ? "bg-emerald-850/60 text-white font-extrabold" : "text-neutral-400 hover:text-neutral-200"}`}
+                      >
+                        Retail
+                      </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto pr-1 space-y-3 scrollbar-thin">
+                      {/* V0.5 Road Building Option (Infra tab only) */}
+                      {catalogCategory === "infrastructure" && (() => {
+                        const isPlacing = placingType === "road";
+                        const hasResources = 
+                          gameState.money >= 10 &&
+                          (gameState.resources.stone || 0) >= 1 &&
+                          (gameState.resources.wood || 0) >= 1;
+                        return (
+                          <div 
+                            className="p-3 rounded-xl border bg-neutral-950/45 border-neutral-850 hover:border-neutral-700 transition-all flex items-center justify-between"
+                          >
+                            <div>
+                              <div className="text-xs font-bold flex items-center gap-1.5 text-neutral-100">
+                                Transit Road
+                                <span className="text-[9px] text-neutral-500 font-mono">(1x1)</span>
+                              </div>
+                              <p className="text-[10px] text-neutral-400 mt-0.5 leading-normal max-w-[280px]">
+                                Lays a road tile. Connects structures. Adds +0.5% hauling speed multiplier per tile.
+                              </p>
+                              <div className="flex gap-2 mt-1.5 font-mono text-[9px]">
+                                <span className={gameState.money >= 10 ? "text-emerald-450" : "text-rose-400 font-bold"}>$10</span>
+                                <span className={(gameState.resources.stone || 0) >= 1 ? "text-stone-400" : "text-rose-400 font-bold"}>1 Stone</span>
+                                <span className={(gameState.resources.wood || 0) >= 1 ? "text-green-400" : "text-rose-400 font-bold"}>1 Wood</span>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setPlacingType("road");
+                                setMovingBuildingId(null);
+                                setIsBuildMenuOpen(false);
+                              }}
+                              disabled={!hasResources}
+                              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold font-mono transition shrink-0 ${
+                                hasResources 
+                                  ? "bg-amber-505 hover:bg-amber-450 text-neutral-950 font-black" 
+                                  : "bg-neutral-800 text-neutral-600 cursor-not-allowed"
+                              }`}
+                            >
+                              Build
+                            </button>
+                          </div>
+                        );
+                      })()}
+
+                      {Object.entries(BUILDING_CONFIGS)
+                        .filter(([_, config]) => {
+                          if (config.category === "hq") return false;
+                          
+                          let mappedCategory = "";
+                          if (config.category === "extractor") mappedCategory = "extraction";
+                          else if (config.category === "factory") mappedCategory = "industry";
+                          else if (config.category === "retail" || config.category === "service") mappedCategory = "commerce";
+                          else mappedCategory = "infrastructure";
+
+                          return mappedCategory === catalogCategory;
+                        })
+                        .map(([key, config]) => {
+                          const cost = config.baseCost;
+                          const hasResources = 
+                            gameState.money >= cost &&
+                            (gameState.resources.iron_ore || 0) >= (config.baseIronCost || 0) &&
+                            (gameState.resources.stone || 0) >= (config.baseStoneCost || 0) &&
+                            (gameState.resources.mortar || 0) >= (config.baseMortarCost || 0) &&
+                            (gameState.resources.wood || 0) >= (config.baseWoodCost || 0);
+
+                          return (
+                            <div 
+                              key={key}
+                              className="p-3 rounded-xl border bg-neutral-950/45 border-neutral-850 hover:border-neutral-700 transition-all flex items-center justify-between animate-in fade-in-20 duration-150"
+                            >
+                              <div>
+                                <div className="text-xs font-bold flex items-center gap-1.5 text-neutral-100">
+                                  <div className={`w-2.5 h-2.5 rounded-sm shrink-0 ${config.color}`} />
+                                  {config.name}
+                                  <span className="text-[9px] text-neutral-500 font-mono">({config.width}x{config.height})</span>
+                                </div>
+                                <p className="text-[10px] text-neutral-400 mt-0.5 leading-normal max-w-[280px]">
+                                  {config.description}
+                                </p>
+                                
+                                <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1.5 font-mono text-[9px]">
+                                  <span className={gameState.money >= cost ? "text-emerald-450" : "text-rose-450 font-bold"}>${cost}</span>
+                                  {(config.baseIronCost || 0) > 0 && (
+                                    <span className={(gameState.resources.iron_ore || 0) >= (config.baseIronCost || 0) ? "text-slate-350" : "text-rose-450 font-bold"}>
+                                      {config.baseIronCost} Iron
+                                    </span>
+                                  )}
+                                  {(config.baseStoneCost || 0) > 0 && (
+                                    <span className={(gameState.resources.stone || 0) >= (config.baseStoneCost || 0) ? "text-stone-400" : "text-rose-450 font-bold"}>
+                                      {config.baseStoneCost} Stone
+                                    </span>
+                                  )}
+                                  {(config.baseMortarCost || 0) > 0 && (
+                                    <span className={(gameState.resources.mortar || 0) >= (config.baseMortarCost || 0) ? "text-amber-500" : "text-rose-450 font-bold"}>
+                                      {config.baseMortarCost} Mortar
+                                    </span>
+                                  )}
+                                  {(config.baseWoodCost || 0) > 0 && (
+                                    <span className={(gameState.resources.wood || 0) >= (config.baseWoodCost || 0) ? "text-green-400 font-semibold" : "text-rose-450 font-bold"}>
+                                      {config.baseWoodCost} Wood
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <button
+                                onClick={() => {
+                                  setPlacingType(key);
+                                  setMovingBuildingId(null);
+                                  setIsBuildMenuOpen(false);
+                                }}
+                                disabled={!hasResources}
+                                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold font-mono transition shrink-0 ${
+                                  hasResources 
+                                    ? "bg-amber-505 hover:bg-amber-450 text-neutral-950 font-black" 
+                                    : "bg-neutral-800 text-neutral-600 cursor-not-allowed"
+                                }`}
+                              >
+                                Build
+                              </button>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Property Inspector Modal Overlay */}
+              {isInspectorOpen && selectedInfo && bObj && (
+                <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+                  <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-2xl w-full max-w-lg space-y-4 shadow-2xl flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
+                    <div className="flex justify-between items-center pb-2 border-b border-neutral-800">
+                      <h3 className="text-xs font-bold text-neutral-450 uppercase tracking-widest flex items-center gap-1.5">
+                        <Info className="h-4 w-4 text-amber-500 animate-bounce" />
+                        Property Inspector
+                      </h3>
+                      <button
+                        onClick={() => {
+                          setIsInspectorOpen(false);
+                          setSelectedBuildingId(null);
+                        }}
+                        className="text-neutral-400 hover:text-white font-bold text-xs bg-neutral-800 hover:bg-neutral-750 px-2.5 py-1 rounded-lg transition"
+                      >
+                        ✕ Close
+                      </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto pr-1 space-y-4 text-xs scrollbar-thin">
                       <div>
                         <div className="flex items-center gap-2 mb-1.5">
                           <div className={`w-3.5 h-3.5 rounded shrink-0 ${selectedInfo.config.color}`} />
-                          <h4 className="font-bold text-neutral-100 text-sm truncate">{selectedInfo.config.name}</h4>
+                          <h4 className="font-black text-neutral-100 text-base truncate">{selectedInfo.config.name}</h4>
                         </div>
                         <p className="text-[11px] text-neutral-400 leading-normal">
                           {selectedInfo.config.description}
                         </p>
                       </div>
 
-                      {/* Display Recipe selectors for factories */}
+                      {/* Recipe selectors for factories */}
                       {selectedInfo.config.category === "factory" && (
                         <div className="bg-neutral-950 p-2.5 rounded-xl border border-neutral-800 space-y-2">
-                          <span className="text-[10px] text-neutral-400 font-bold uppercase block tracking-wider">Manufacturing Recipe</span>
-                          
+                          <span className="text-[10px] text-neutral-450 font-bold uppercase block tracking-wider">Manufacturing Recipe</span>
                           {bObj.recipeId ? (
                             <div className="text-xs font-black text-amber-400 font-mono bg-neutral-900 px-2 py-1.5 rounded border border-neutral-850">
                               🛠️ {FACTORY_RECIPES[bObj.recipeId]?.name} (Specialized)
@@ -1697,7 +1744,7 @@ export default function BusinessEmpireGame() {
                             <select 
                               value={bObj.recipeId || ""}
                               onChange={(e) => handleSelectRecipe(bObj.id, e.target.value)}
-                              className="w-full bg-neutral-900 border border-neutral-800 text-neutral-200 p-1.5 text-xs rounded"
+                              className="w-full bg-neutral-900 border border-neutral-800 text-neutral-200 p-1.5 text-xs rounded font-sans"
                             >
                               <option value="">Select Recipe...</option>
                               {Object.values(FACTORY_RECIPES).map(recipe => (
@@ -1708,219 +1755,212 @@ export default function BusinessEmpireGame() {
                             </select>
                           )}
 
-                          {/* Recipe display inputs -> outputs */}
                           {bObj.recipeId && FACTORY_RECIPES[bObj.recipeId] && (
                             <div className="text-[10px] space-y-1 mt-1 text-neutral-400 font-mono">
-                              <div>
-                                <span className="text-rose-400">Inputs:</span>{" "}
-                                {FACTORY_RECIPES[bObj.recipeId].inputs.map(i => `${i.amount}x ${RESOURCES_CONFIG[i.resource]?.name}`).join(", ")}
-                              </div>
-                              <div>
-                                <span className="text-emerald-400">Output:</span>{" "}
-                                {FACTORY_RECIPES[bObj.recipeId].outputs.map(o => `${o.amount}x ${RESOURCES_CONFIG[o.resource]?.name}`).join(", ")}
-                              </div>
+                              <div>Inputs: {FACTORY_RECIPES[bObj.recipeId].inputs.map(i => `${i.amount}x ${RESOURCES_CONFIG[i.resource]?.name || i.resource}`).join(", ")}</div>
+                              <div>Outputs: {FACTORY_RECIPES[bObj.recipeId].outputs.map(o => `${o.amount}x ${RESOURCES_CONFIG[o.resource]?.name || o.resource}`).join(", ")}</div>
                             </div>
                           )}
-
-                          {/* V0.3 Production Quota Selector */}
-                          <div className="border-t border-neutral-900 pt-2.5 space-y-1">
-                            <span className="text-[10px] text-neutral-450 font-bold uppercase tracking-wider block">Production Target Limit</span>
-                            <select
-                              value={bObj.productionQuota !== undefined ? bObj.productionQuota : -1}
-                              onChange={(e) => handleSetProductionQuota(bObj.id, Number(e.target.value))}
-                              className="w-full bg-neutral-900 border border-neutral-850 text-neutral-200 p-1.5 text-xs rounded font-mono"
-                            >
-                              <option value={-1}>Infinite (Produce continuously)</option>
-                              <option value={50}>50 units max in warehouse</option>
-                              <option value={100}>100 units max in warehouse</option>
-                              <option value={250}>250 units max in warehouse</option>
-                              <option value={500}>500 units max in warehouse</option>
-                            </select>
-                            <span className="text-[8px] text-neutral-550 italic block leading-normal">
-                              Note: Factory pauses and enters low-wear decay mode when target quantity of output is reached in warehouse.
-                            </span>
-                          </div>
                         </div>
                       )}
 
-                      {/* V0.3 Local Storage Silo Display */}
-                      {bObj.localResources && Object.keys(bObj.localResources).length > 0 && (() => {
-                        const hasActiveShipment = (gameState.shipments || []).some(s => s.buildingId === bObj.id);
-                        const activeShipment = (gameState.shipments || []).find(s => s.buildingId === bObj.id);
-                        const hasLocalStock = Object.values(bObj.localResources).some(qty => (qty as number) > 0);
+                      {/* Local silo indicators */}
+                      {bObj.localResources !== undefined && (
+                        <div className="bg-neutral-950 p-2.5 rounded-xl border border-neutral-800 space-y-2">
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="font-bold text-neutral-455 uppercase tracking-wider">Local Silo Storage</span>
+                            <span className="font-mono text-neutral-350">{Object.values(bObj.localResources).reduce((s: number, v) => s + (v as number), 0)} / {((selectedInfo.config.baseCapacity || 100) * bObj.level)} units</span>
+                          </div>
 
-                        return (
-                          <div className="bg-neutral-950 p-2.5 rounded-xl border border-neutral-800 space-y-2">
-                            <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider block">Local Storage Silo</span>
-                            
-                            <div className="space-y-1 font-mono text-[10px]">
-                              {Object.entries(bObj.localResources).map(([resId, qty]) => {
-                                const resConfig = RESOURCES_CONFIG[resId];
-                                const localCap = 100 * bObj.level;
-                                return (
-                                  <div key={resId} className="flex justify-between text-neutral-300">
-                                    <span>{resConfig?.name || resId}:</span>
-                                    <span className="font-bold text-amber-400">
-                                      {Math.floor(qty as number)} / {localCap}
-                                    </span>
+                          <div className="max-h-24 overflow-y-auto space-y-1 font-mono text-[9px] text-neutral-400">
+                            {Object.entries(bObj.localResources).map(([resId, count]) => {
+                              if ((count as number) <= 0) return null;
+                              return (
+                                <div key={resId} className="flex justify-between border-b border-neutral-900/60 pb-0.5">
+                                  <span>{RESOURCES_CONFIG[resId]?.name || resId}</span>
+                                  <span className="font-bold text-amber-400">{(count as number).toFixed(0)} units</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {(() => {
+                            const hasActiveShipment = (gameState.shipments || []).some(s => s.buildingId === bObj.id);
+                            const activeShipment = (gameState.shipments || []).find(s => s.buildingId === bObj.id);
+                            const hasLocalStock = Object.values(bObj.localResources).some(qty => (qty as number) > 0);
+
+                            return (
+                              <div className="flex gap-2 pt-1.5 flex-col">
+                                <button
+                                  onClick={() => handleDispatchShipment(bObj.id)}
+                                  disabled={!hasLocalStock || hasActiveShipment}
+                                  className="w-full py-1.5 bg-indigo-650 hover:bg-indigo-600 text-white rounded-lg text-[10px] font-bold transition flex items-center justify-center gap-1 disabled:opacity-40"
+                                >
+                                  📤 Dispatch Shipment
+                                </button>
+                                {hasActiveShipment && activeShipment && (
+                                  <div className="bg-neutral-900/50 p-2 rounded border border-neutral-800 space-y-1.5 font-mono text-[9px] w-full">
+                                    <div className="flex justify-between text-[10px] font-bold text-amber-400">
+                                      <span>🚚 Dispatch In Transit</span>
+                                      <span>{Math.round((activeShipment.qtyDelivered / activeShipment.qty) * 100)}%</span>
+                                    </div>
+                                    <div className="text-neutral-450 leading-normal">
+                                      Carrying: {Math.floor(activeShipment.qtyDelivered)} / {Math.floor(activeShipment.qty)} {RESOURCES_CONFIG[activeShipment.resource]?.name || activeShipment.resource}
+                                    </div>
+                                    <div className="w-full bg-neutral-950 rounded-full h-1 overflow-hidden border border-neutral-800">
+                                      <div 
+                                        className="bg-amber-500 h-full transition-all"
+                                        style={{ width: `${(activeShipment.qtyDelivered / activeShipment.qty) * 100}%` }}
+                                      />
+                                    </div>
                                   </div>
-                                );
-                              })}
-                            </div>
-
-                            {/* Active Shipment Progress Display */}
-                            {hasActiveShipment && activeShipment && (
-                              <div className="bg-neutral-900/50 p-2 rounded border border-neutral-800 space-y-1.5 mt-2 font-mono text-[9px]">
-                                <div className="flex justify-between text-[10px] font-bold text-amber-400">
-                                  <span>🚚 Dispatch In Transit</span>
-                                  <span>{Math.round((activeShipment.qtyDelivered / activeShipment.qty) * 100)}%</span>
-                                </div>
-                                <div className="text-neutral-400 leading-normal">
-                                  Carrying: {Math.floor(activeShipment.qtyDelivered)} / {Math.floor(activeShipment.qty)} {RESOURCES_CONFIG[activeShipment.resource]?.name}
-                                </div>
-                                {/* Progress bar */}
-                                <div className="w-full bg-neutral-950 rounded-full h-1 overflow-hidden border border-neutral-800">
-                                  <div 
-                                    className="bg-amber-500 h-full transition-all"
-                                    style={{ width: `${(activeShipment.qtyDelivered / activeShipment.qty) * 100}%` }}
-                                  />
-                                </div>
+                                )}
                               </div>
-                            )}
+                            );
+                          })()}
+                        </div>
+                      )}
 
-                            {/* Dispatch Shipment Action Button */}
-                            {!hasActiveShipment ? (
+                      {/* Factory Target Quotas */}
+                      {selectedInfo.config.category === "factory" && bObj.productionQuota !== undefined && (
+                        <div className="bg-neutral-950 p-2.5 rounded-xl border border-neutral-800 space-y-2">
+                          <span className="text-[10px] text-neutral-450 font-bold uppercase block tracking-wider">Production Limit Target</span>
+                          <div className="flex items-center gap-1.5">
+                            {[-1, 50, 100, 250, 500].map(quotaVal => (
                               <button
-                                onClick={() => handleDispatchShipment(bObj.id)}
-                                disabled={!hasLocalStock}
-                                className={`w-full py-1.5 rounded text-[10px] font-bold transition flex items-center justify-center gap-1 mt-1.5 ${
-                                  hasLocalStock 
-                                    ? "bg-amber-500 hover:bg-amber-400 text-neutral-950 shadow-md shadow-amber-500/10" 
-                                    : "bg-neutral-800 text-neutral-500 cursor-not-allowed"
+                                key={quotaVal}
+                                onClick={() => handleSetProductionQuota(bObj.id, quotaVal)}
+                                className={`flex-1 py-1 rounded text-[10px] font-bold font-mono transition ${
+                                  bObj.productionQuota === quotaVal 
+                                    ? "bg-amber-505 text-neutral-950" 
+                                    : "bg-neutral-900 hover:bg-neutral-850 text-neutral-400 border border-neutral-850"
                                 }`}
                               >
-                                📤 Dispatch Shipment
+                                {quotaVal === -1 ? "Infinite" : quotaVal}
                               </button>
-                            ) : (
-                              <div className="text-[8px] text-neutral-550 italic text-center leading-normal mt-1 border border-dashed border-neutral-850 p-1.5 rounded bg-neutral-950/20 font-mono">
-                                Dispatch order active. Wait for delivery.
-                              </div>
-                            )}
-
-                            <span className="text-[8px] text-neutral-500 italic block mt-1 leading-normal text-center">
-                              Click Dispatch Shipment to empty silo and queue cargo transport.
-                            </span>
+                            ))}
                           </div>
-                        );
-                      })()}
+                        </div>
+                      )}
 
-                      {/* V0.3 Crop Cycle selector for Agricultural Farms */}
+                      {/* Farming committed grow cycles */}
                       {selectedInfo.config.id === "agricultural_farm" && (
                         <div className="bg-neutral-950 p-2.5 rounded-xl border border-neutral-800 space-y-2">
-                          <span className="text-[10px] text-neutral-400 font-bold uppercase block tracking-wider">Agriculture Planning</span>
+                          <span className="text-[10px] text-neutral-455 font-bold uppercase block tracking-wider">Committed Agricultural Crops</span>
                           
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              onClick={() => handleSelectFarmCrop(bObj.id, "food")}
-                              disabled={!!bObj.cropCycleSelected}
-                              className={`py-1.5 rounded text-[10px] font-bold transition ${
-                                bObj.cropCycleSelected === "food"
-                                  ? "bg-emerald-650 text-white font-extrabold"
-                                  : "bg-neutral-800 hover:bg-neutral-750 text-neutral-300 disabled:opacity-40"
-                              }`}
-                            >
-                              🌾 Grow Food
-                            </button>
-                            <button
-                              onClick={() => handleSelectFarmCrop(bObj.id, "cotton")}
-                              disabled={!!bObj.cropCycleSelected}
-                              className={`py-1.5 rounded text-[10px] font-bold transition ${
-                                bObj.cropCycleSelected === "cotton"
-                                  ? "bg-rose-650 text-white font-extrabold"
-                                  : "bg-neutral-800 hover:bg-neutral-750 text-neutral-300 disabled:opacity-40"
-                              }`}
-                            >
-                              🌱 Grow Cotton
-                            </button>
-                          </div>
-
                           {bObj.cropCycleSelected ? (
-                            <div className="space-y-1.5 pt-1 text-[10px] font-mono text-neutral-300">
-                              <div className="flex justify-between items-center text-[9px]">
-                                <span>Active: <span className="text-amber-400 font-bold uppercase">{bObj.cropCycleSelected}</span></span>
-                                <span className="text-neutral-500">{60 - (bObj.cropCycleProgress || 0)}s remaining</span>
+                            <div className="space-y-1.5 p-2 bg-neutral-900 rounded border border-neutral-850 font-mono text-[10px]">
+                              <div className="flex justify-between items-center text-neutral-300">
+                                <span>Active Crop:</span>
+                                <span className="text-emerald-400 font-bold uppercase">{bObj.cropCycleSelected}</span>
                               </div>
-                              
-                              {/* Visual progress bar */}
-                              <div className="w-full bg-neutral-900 border border-neutral-800 rounded-full h-1.5 overflow-hidden">
-                                <div 
-                                  className="bg-emerald-500 h-full transition-all"
-                                  style={{ width: `${Math.min(100, ((bObj.cropCycleProgress || 0) / 60) * 100)}%` }}
-                                />
+                              <div className="flex justify-between items-center text-neutral-450">
+                                <span>Cycle Progress:</span>
+                                <span>{(bObj.cropCycleProgress || 0).toFixed(0)} / 60 seconds</span>
                               </div>
-
-                              <button
-                                onClick={() => {
-                                  if (window.confirm("Cancel crop growth? You will lose all current progress.")) {
-                                    setGameState(prev => ({
-                                      ...prev,
-                                      buildings: prev.buildings.map(b => 
-                                        b.id === bObj.id ? { ...b, cropCycleSelected: null, cropCycleProgress: 0 } : b
-                                      )
-                                    }));
-                                  }
-                                }}
-                                className="w-full mt-1.5 py-1 bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 border border-rose-900/30 rounded text-[9px] font-semibold"
-                              >
-                                Cancel Current Crop
-                              </button>
+                              <div className="w-full bg-neutral-950 rounded-full h-1 overflow-hidden">
+                                <div className="h-full bg-emerald-500 transition-all" style={{ width: `${Math.min(100, ((bObj.cropCycleProgress || 0) / 60) * 100)}%` }} />
+                              </div>
                             </div>
                           ) : (
-                            <div className="text-[9px] text-neutral-500 italic leading-normal text-center">
-                              Commit to a 60s crop cycle. Yields 124 units.
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleSelectFarmCrop(bObj.id, "food")}
+                                className="flex-1 py-2 bg-neutral-900 border border-neutral-850 hover:border-amber-500 rounded-xl transition text-[10px] font-extrabold flex flex-col items-center"
+                              >
+                                <span className="text-base mb-0.5">🌾</span>
+                                Grow Food (Crops)
+                              </button>
+                              <button
+                                onClick={() => handleSelectFarmCrop(bObj.id, "cotton")}
+                                className="flex-1 py-2 bg-neutral-900 border border-neutral-850 hover:border-amber-500 rounded-xl transition text-[10px] font-extrabold flex flex-col items-center"
+                              >
+                                <span className="text-base mb-0.5">🌱</span>
+                                Grow Cotton (Cotton)
+                              </button>
                             </div>
                           )}
                         </div>
                       )}
 
-                      {/* V0.4 Department Upgrades & Concept Success Factors */}
-                      {!selectedInfo.isCompany && (
+                      {/* Structural Integrity repairs */}
+                      {bObj.integrity !== undefined && (
+                        <div className="bg-neutral-950 p-2.5 rounded-xl border border-neutral-800 space-y-2">
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="font-bold text-neutral-300 uppercase tracking-wider">Structural Integrity</span>
+                            <span className={`font-mono font-bold ${(bObj.integrity ?? 100) > 50 ? "text-emerald-450" : (bObj.integrity ?? 100) > 20 ? "text-amber-450" : "text-rose-500 font-black animate-pulse"}`}>
+                              {Math.floor(bObj.integrity ?? 100)}%
+                            </span>
+                          </div>
+
+                          <div className="w-full bg-neutral-900 border border-neutral-800 rounded-full h-2 overflow-hidden">
+                            <div className={`h-full transition-all ${(bObj.integrity ?? 100) > 50 ? "bg-emerald-500" : (bObj.integrity ?? 100) > 20 ? "bg-amber-500" : "bg-rose-600"}`} style={{ width: `${bObj.integrity ?? 100}%` }} />
+                          </div>
+
+                          {(bObj.integrity ?? 100) < 100 && (() => {
+                            const currentIntegrity = bObj.integrity ?? 100;
+                            const repairCost = Math.max(10, Math.floor(selectedInfo.config.baseCost * 0.15 * (1 - currentIntegrity / 100)));
+                            const canAffordRepair = gameState.money >= repairCost;
+
+                            return (
+                              <button
+                                onClick={() => handleRepairBuilding(bObj.id)}
+                                disabled={!canAffordRepair}
+                                className={`w-full py-1.5 rounded-lg text-[10px] font-bold transition flex items-center justify-center gap-1 ${
+                                  canAffordRepair ? "bg-blue-650 hover:bg-blue-600 text-white shadow-md" : "bg-neutral-800 text-neutral-500 cursor-not-allowed"
+                                }`}
+                              >
+                                🔧 Repair Structure (Cost: ${repairCost})
+                              </button>
+                            );
+                          })()}
+                        </div>
+                      )}
+
+                      {/* Business & Corporate HQ dynamic skills */}
+                      {!selectedInfo.isCompany ? (
                         <div className="bg-neutral-950 p-2.5 rounded-xl border border-neutral-800 space-y-2.5">
                           <div className="flex justify-between items-center">
-                            <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider block">Business Departments</span>
-                            {/* Restructure reset button */}
+                            <span className="text-[10px] text-neutral-450 font-bold uppercase tracking-wider block">Business Skills</span>
                             <button
                               onClick={() => handleRestructureDepartments(bObj.id)}
                               className="text-[9px] text-rose-450 hover:text-rose-350 transition font-bold"
                             >
-                              🔄 Restructure ($1,000)
+                              🔄 Reset Skills ($1,000)
                             </button>
                           </div>
                           
                           {(() => {
-                            const depts = DEPARTMENTS_BY_CATEGORY[selectedInfo.config.category] || [];
-                            const maxDP = bObj.level - 1;
+                            let skillsList: any[] = [];
+                            if (selectedInfo.config.category === "extractor") {
+                              const unique = UNIQUE_EXTRACTOR_SKILLS[selectedInfo.config.id] || [];
+                              skillsList = [...UNIVERSAL_EXTRACTOR_SKILLS, ...unique];
+                            } else if (selectedInfo.config.category === "factory") {
+                              skillsList = BUSINESS_SKILLS.factory || [];
+                            } else {
+                              skillsList = BUSINESS_SKILLS[selectedInfo.config.id] || [];
+                            }
+                            const maxDP = bObj.level;
                             const spentDP = Object.values(bObj.departments || {}).reduce((sum: number, val) => sum + (val as number), 0);
                             const availableDP = maxDP - spentDP;
 
                             return (
                               <div className="space-y-2">
                                 <div className="text-[10px] font-mono flex justify-between bg-neutral-900 px-2 py-1 rounded text-neutral-350">
-                                  <span>Available DP:</span>
+                                  <span>Available Points:</span>
                                   <span className={availableDP > 0 ? "text-amber-400 font-extrabold text-[11px]" : "text-neutral-500"}>
-                                    {availableDP} pts
+                                    {availableDP} / {maxDP} pts
                                   </span>
                                 </div>
 
-                                {depts.map(dept => {
-                                  const currentLvl = bObj.departments?.[dept.id] || 0;
+                                {skillsList.map(skill => {
+                                  const currentLvl = bObj.departments?.[skill.id] || 0;
                                   return (
-                                    <div key={dept.id} className="bg-neutral-900/40 p-2 rounded border border-neutral-850 space-y-1">
+                                    <div key={skill.id} className="bg-neutral-900/40 p-2 rounded border border-neutral-850 space-y-1">
                                       <div className="flex justify-between items-center">
-                                        <span className="font-bold text-neutral-200 text-[10px]">{dept.name}</span>
-                                        {/* Upgrade button */}
+                                        <span className="font-bold text-neutral-200 text-[10px]">{skill.name}</span>
                                         <button
-                                          onClick={() => handleUpgradeDepartment(bObj.id, dept.id)}
+                                          onClick={() => handleUpgradeDepartment(bObj.id, skill.id)}
                                           disabled={availableDP <= 0 || currentLvl >= 5}
                                           className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase transition ${
                                             availableDP > 0 && currentLvl < 5
@@ -1932,7 +1972,6 @@ export default function BusinessEmpireGame() {
                                         </button>
                                       </div>
                                       
-                                      {/* Level blocks indicator */}
                                       <div className="flex gap-0.5 h-1">
                                         {[1, 2, 3, 4, 5].map(idx => (
                                           <div 
@@ -1943,12 +1982,11 @@ export default function BusinessEmpireGame() {
                                       </div>
                                       
                                       <p className="text-[9px] text-neutral-400 leading-normal font-sans">
-                                        {dept.description}
+                                        {skill.description}
                                       </p>
                                       
                                       <div className="text-[8px] font-mono text-neutral-500 flex justify-between pt-0.5 border-t border-neutral-850/45">
-                                        <span>Concept: {dept.realWorldConcept}</span>
-                                        <span className="text-amber-400/80">{dept.effectDescription}</span>
+                                        <span className="text-amber-400/80">{skill.effectDescription}</span>
                                       </div>
                                     </div>
                                   );
@@ -1957,291 +1995,234 @@ export default function BusinessEmpireGame() {
                             );
                           })()}
                         </div>
-                      )}
-
-                      {/* V0.3 Structural Integrity & Repair Widget */}
-                      {!selectedInfo.isCompany && (
-                        <div className="bg-neutral-950 p-2.5 rounded-xl border border-neutral-850 space-y-2">
-                          <div className="flex justify-between items-center text-[10px]">
-                            <span className="font-bold text-neutral-300 uppercase tracking-wider">Structural Integrity</span>
-                            <span className={`font-mono font-bold ${
-                              (bObj.integrity ?? 100) > 50 
-                                ? "text-emerald-400" 
-                                : (bObj.integrity ?? 100) > 20 
-                                  ? "text-amber-400" 
-                                  : "text-rose-500 font-extrabold animate-pulse"
-                            }`}>
-                              {Math.floor(bObj.integrity ?? 100)}%
-                            </span>
+                      ) : (
+                        <div className="bg-neutral-950 p-2.5 rounded-xl border border-neutral-800 space-y-2.5">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px] text-neutral-450 font-bold uppercase tracking-wider block">Corporate HQ Skills</span>
                           </div>
 
-                          {/* Integrity bar */}
-                          <div className="w-full bg-neutral-900 border border-neutral-800 rounded-full h-2 overflow-hidden">
-                            <div 
-                              className={`h-full transition-all ${
-                                (bObj.integrity ?? 100) > 50 
-                                  ? "bg-emerald-500" 
-                                  : (bObj.integrity ?? 100) > 20 
-                                    ? "bg-amber-500" 
-                                    : "bg-rose-600"
-                              }`}
-                              style={{ width: `${bObj.integrity ?? 100}%` }}
-                            />
+                          <div className="border-t border-neutral-850 pt-2 space-y-1.5">
+                            {(() => {
+                              const mergerId = bObj.type.replace("_hq", "");
+                              const uniqueCorp = UNIQUE_CORPORATE_SKILLS[mergerId] || [];
+                              const corpSkillsList = [...UNIVERSAL_CORPORATE_SKILLS, ...uniqueCorp];
+                              
+                              const spentPoints = Object.values(bObj.skills || {}).reduce((sum: number, val) => sum + (val as number), 0);
+                              const availablePoints = bObj.level - spentPoints;
+
+                              return (
+                                <div className="space-y-2">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-neutral-400 font-bold uppercase text-[9px] block tracking-wider">Corporate Skills</span>
+                                    <span className="font-mono text-[9px] text-amber-400 font-bold">
+                                      Available: {availablePoints} / {bObj.level} pts
+                                    </span>
+                                  </div>
+
+                                  <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+                                    {corpSkillsList.map(skill => {
+                                      const currentLvl = bObj.skills?.[skill.id] || 0;
+                                      return (
+                                        <div key={skill.id} className="bg-neutral-900 p-2 rounded-xl border border-neutral-850 space-y-1">
+                                          <div className="flex justify-between items-center">
+                                            <span className="font-bold text-neutral-200 text-[10px]">{skill.name}</span>
+                                            <button
+                                              onClick={() => handleUpgradeCompanySkill(bObj.id, skill.id)}
+                                              disabled={availablePoints <= 0 || currentLvl >= 5}
+                                              className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase transition ${
+                                                availablePoints > 0 && currentLvl < 5
+                                                  ? "bg-amber-505 hover:bg-amber-400 text-neutral-950 font-black"
+                                                  : "bg-neutral-800 text-neutral-500 cursor-not-allowed"
+                                              }`}
+                                            >
+                                              Upgrade (L{currentLvl})
+                                            </button>
+                                          </div>
+                                          <div className="flex gap-0.5 h-1">
+                                            {[1, 2, 3, 4, 5].map(idx => (
+                                              <div 
+                                                key={idx} 
+                                                className={`flex-1 rounded-sm ${idx <= currentLvl ? "bg-amber-400" : "bg-neutral-850"}`} 
+                                              />
+                                            ))}
+                                          </div>
+                                          <p className="text-[8px] text-neutral-450 leading-normal">{skill.description}</p>
+                                          <div className="text-[7.5px] font-mono text-amber-500/80">{skill.effectDescription}</div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </div>
-
-                          {/* Critical status warning overlay */}
-                          {(bObj.integrity ?? 100) <= 0 && (
-                            <div className="text-[9px] text-rose-400 font-bold bg-rose-950/20 border border-rose-900/30 p-1.5 rounded text-center leading-normal animate-pulse">
-                              ⚠️ CRITICAL BREAKDOWN: All building operations paused. Pay repair fee to restart production.
-                            </div>
-                          )}
-
-                          {/* Repair button */}
-                          {(bObj.integrity ?? 100) < 100 && (() => {
-                            const currentIntegrity = bObj.integrity ?? 100;
-                            const repairCost = Math.max(10, Math.floor(selectedInfo.config.baseCost * 0.15 * (1 - currentIntegrity / 100)));
-                            const canAffordRepair = gameState.money >= repairCost;
-
-                            return (
-                              <button
-                                onClick={() => handleRepairBuilding(bObj.id)}
-                                disabled={!canAffordRepair}
-                                className={`w-full py-1.5 rounded text-[10px] font-bold transition flex items-center justify-center gap-1 ${
-                                  canAffordRepair 
-                                    ? "bg-blue-650 hover:bg-blue-600 text-white shadow-md shadow-blue-500/10" 
-                                    : "bg-neutral-800 text-neutral-500 cursor-not-allowed"
-                                }`}
-                              >
-                                🔧 Repair Structure (Cost: ${repairCost})
-                              </button>
-                            );
-                          })()}
                         </div>
                       )}
 
-                      <div className="border-t border-neutral-800 pt-3 space-y-2 font-mono text-[11px] text-neutral-300">
+                      {/* Upgrade & Tier actions */}
+                      <div className="border-t border-neutral-800 pt-3 space-y-3 font-mono text-[10px] text-neutral-300">
                         <div className="flex justify-between">
                           <span className="text-neutral-500">Upgrade Level:</span>
                           <span className="text-white font-bold">{bObj.level}</span>
                         </div>
                         {bObj.progressionLevel !== undefined && (
                           <div className="flex justify-between">
-                            <span className="text-neutral-500">Business Tier:</span>
-                            <span className="text-amber-400 font-bold">
-                              {bObj.progressionLevel === 3 ? "Dealership / Corporate" : bObj.progressionLevel === 2 ? "Showroom / Firm" : "Shop / Office"}
+                            <span className="text-neutral-500">Current Tier:</span>
+                            <span className="text-amber-400 font-extrabold uppercase">
+                              {bObj.progressionLevel === 1 ? "Shop" : bObj.progressionLevel === 2 ? "Showroom" : "Dealership"}
                             </span>
                           </div>
                         )}
-                        <div className="flex justify-between">
-                          <span className="text-neutral-500">Size:</span>
-                          <span>{selectedInfo.config.width}x{selectedInfo.config.height}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-neutral-500">Wear Rate:</span>
-                          <span className="text-rose-400">
-                            -0.25% / tick
-                          </span>
-                        </div>
-                      </div>
 
-                      <div className="space-y-2 pt-2">
-                        {/* Level Upgrade button */}
-                        {!selectedInfo.isCompany ? (() => {
-                          const upgradeMoneyCost = Math.floor(selectedInfo.config.baseCost * Math.pow(1.6, bObj.level));
-                          const upgradeIronCost = Math.floor((selectedInfo.config.baseIronCost || 0) * Math.pow(1.4, bObj.level));
-                          const upgradestoneCost = Math.floor((selectedInfo.config.baseStoneCost || 0) * Math.pow(1.4, bObj.level));
-                          const upgradeMortarCost = Math.floor((selectedInfo.config.baseMortarCost || 0) * Math.pow(1.4, bObj.level));
-                          const upgradeWoodCost = Math.floor((selectedInfo.config.baseWoodCost || 0) * Math.pow(1.4, bObj.level));
+                        <div className="space-y-2 pt-1 font-sans">
+                          {/* Level Up grade action */}
+                          {!selectedInfo.isCompany ? (() => {
+                            const upgradeMoneyCost = Math.floor(selectedInfo.config.baseCost * Math.pow(1.6, bObj.level));
+                            const upgradeIronCost = Math.floor((selectedInfo.config.baseIronCost || 0) * Math.pow(1.4, bObj.level));
+                            const upgradestoneCost = Math.floor((selectedInfo.config.baseStoneCost || 0) * Math.pow(1.4, bObj.level));
+                            const upgradeMortarCost = Math.floor((selectedInfo.config.baseMortarCost || 0) * Math.pow(1.4, bObj.level));
+                            const upgradeWoodCost = Math.floor((selectedInfo.config.baseWoodCost || 0) * Math.pow(1.4, bObj.level));
 
-                          const hasResourcesToUpgrade = 
-                            gameState.money >= upgradeMoneyCost &&
-                            (gameState.resources.iron_ore || 0) >= upgradeIronCost &&
-                            (gameState.resources.limestone || 0) >= upgradestoneCost &&
-                            (gameState.resources.mortar || 0) >= upgradeMortarCost &&
-                            (gameState.resources.wood || 0) >= upgradeWoodCost;
+                            const hasResourcesToUpgrade = 
+                              gameState.money >= upgradeMoneyCost &&
+                              (gameState.resources.iron_ore || 0) >= upgradeIronCost &&
+                              (gameState.resources.stone || 0) >= upgradestoneCost &&
+                              (gameState.resources.mortar || 0) >= upgradeMortarCost &&
+                              (gameState.resources.wood || 0) >= upgradeWoodCost;
 
-                          return (
-                            <div className="space-y-1">
-                              <button
-                                onClick={() => handleUpgradeBuilding(bObj.id)}
-                                disabled={!hasResourcesToUpgrade}
-                                className="w-full py-2 bg-indigo-650 hover:bg-indigo-600 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 disabled:opacity-40"
-                              >
-                                Upgrade Level
-                              </button>
-                              
-                              <div className="flex flex-wrap gap-x-2 gap-y-0.5 justify-center font-mono text-[9px] text-neutral-400 bg-neutral-950 p-1.5 rounded border border-neutral-850">
-                                <span>Costs:</span>
-                                <span className={gameState.money >= upgradeMoneyCost ? "text-emerald-400" : "text-rose-450 font-bold"}>
-                                  ${upgradeMoneyCost}
-                                </span>
-                                {upgradeIronCost > 0 && (
-                                  <span className={(gameState.resources.iron_ore || 0) >= upgradeIronCost ? "text-slate-350" : "text-rose-450 font-bold"}>
-                                    {upgradeIronCost} Iron
+                            return (
+                              <div className="space-y-1">
+                                <button
+                                  onClick={() => handleUpgradeBuilding(bObj.id)}
+                                  disabled={!hasResourcesToUpgrade}
+                                  className="w-full py-2 bg-indigo-650 hover:bg-indigo-600 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 disabled:opacity-40"
+                                >
+                                  Upgrade Level
+                                </button>
+                                
+                                <div className="flex flex-wrap gap-x-2 gap-y-0.5 justify-center font-mono text-[9px] text-neutral-400 bg-neutral-950 p-1.5 rounded border border-neutral-850">
+                                  <span>Costs:</span>
+                                  <span className={gameState.money >= upgradeMoneyCost ? "text-emerald-400" : "text-rose-450 font-bold"}>
+                                    ${upgradeMoneyCost}
                                   </span>
-                                )}
-                                {upgradestoneCost > 0 && (
-                                  <span className={(gameState.resources.limestone || 0) >= upgradestoneCost ? "text-stone-400" : "text-rose-450 font-bold"}>
-                                    {upgradestoneCost} Lime
-                                  </span>
-                                )}
-                                {upgradeMortarCost > 0 && (
-                                  <span className={(gameState.resources.mortar || 0) >= upgradeMortarCost ? "text-amber-500" : "text-rose-450 font-bold"}>
-                                    {upgradeMortarCost} Mortar
-                                  </span>
-                                )}
-                                {upgradeWoodCost > 0 && (
-                                  <span className={(gameState.resources.wood || 0) >= upgradeWoodCost ? "text-green-400" : "text-rose-450 font-bold"}>
-                                    {upgradeWoodCost} Wood
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })() : (
-                          <div className="space-y-2">
-                            <button
-                              onClick={() => handleUpgradeCompany(bObj.id)}
-                              disabled={gameState.money < Math.floor(5000 * Math.pow(1.8, bObj.level))}
-                              className="w-full py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-neutral-950 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 disabled:opacity-40"
-                            >
-                              Upgrade Corporate Level (Cost: ${Math.floor(5000 * Math.pow(1.8, bObj.level))})
-                            </button>
-                            
-                            {/* V0.4 Merger Quality Score Display */}
-                            {bObj.qualityScore !== undefined && (
-                              <div className="bg-neutral-950 p-2 rounded-lg border border-neutral-800 space-y-1 my-1">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-[9px] text-neutral-400 font-bold uppercase tracking-wider">Merger Quality Score</span>
-                                  <span className="font-mono font-black text-amber-400 text-xs">{Math.round(bObj.qualityScore)}%</span>
+                                  {upgradeIronCost > 0 && (
+                                    <span className={(gameState.resources.iron_ore || 0) >= upgradeIronCost ? "text-slate-350" : "text-rose-450 font-bold"}>
+                                      {upgradeIronCost} Iron
+                                    </span>
+                                  )}
+                                  {upgradestoneCost > 0 && (
+                                    <span className={(gameState.resources.stone || 0) >= upgradestoneCost ? "text-stone-400" : "text-rose-450 font-bold"}>
+                                      {upgradestoneCost} Stone
+                                    </span>
+                                  )}
+                                  {upgradeMortarCost > 0 && (
+                                    <span className={(gameState.resources.mortar || 0) >= upgradeMortarCost ? "text-amber-500" : "text-rose-450 font-bold"}>
+                                      {upgradeMortarCost} Mortar
+                                    </span>
+                                  )}
+                                  {upgradeWoodCost > 0 && (
+                                    <span className={(gameState.resources.wood || 0) >= upgradeWoodCost ? "text-green-400" : "text-rose-450 font-bold"}>
+                                      {upgradeWoodCost} Wood
+                                    </span>
+                                  )}
                                 </div>
-                                <p className="text-[8px] text-neutral-550 leading-normal">
-                                  Brand Multiplier: Corporate revenues are scaled by this quality score. Max out shop levels before merging to increase profit!
-                                </p>
                               </div>
-                            )}
-
-                            <div className="border-t border-neutral-850 pt-2 space-y-1.5 text-[10px]">
-                              <span className="text-neutral-400 font-bold uppercase block tracking-wider">Corporate Department Skills</span>
-                              
-                              <div className="flex justify-between items-center bg-neutral-950 p-1.5 rounded border border-neutral-850">
-                                <span>Production Speed (L{bObj.skills?.production || 0})</span>
-                                <button
-                                  onClick={() => handleUpgradeCompanySkill(bObj.id, "production")}
-                                  disabled={gameState.money < ((bObj.skills?.production || 0) + 1) * 2000}
-                                  className="px-2 py-0.5 bg-neutral-800 hover:bg-neutral-750 text-white rounded font-bold"
-                                >
-                                  + (${((bObj.skills?.production || 0) + 1) * 2000})
-                                </button>
-                              </div>
-
-                              <div className="flex justify-between items-center bg-neutral-950 p-1.5 rounded border border-neutral-850">
-                                <span>Marketing Reach (L{bObj.skills?.marketing || 0})</span>
-                                <button
-                                  onClick={() => handleUpgradeCompanySkill(bObj.id, "marketing")}
-                                  disabled={gameState.money < ((bObj.skills?.marketing || 0) + 1) * 2000}
-                                  className="px-2 py-0.5 bg-neutral-800 hover:bg-neutral-750 text-white rounded font-bold"
-                                >
-                                  + (${((bObj.skills?.marketing || 0) + 1) * 2000})
-                                </button>
-                              </div>
-
-                              <div className="flex justify-between items-center bg-neutral-950 p-1.5 rounded border border-neutral-850">
-                                <span>Finance Audits (L{bObj.skills?.finance || 0})</span>
-                                <button
-                                  onClick={() => handleUpgradeCompanySkill(bObj.id, "finance")}
-                                  disabled={gameState.money < ((bObj.skills?.finance || 0) + 1) * 2000}
-                                  className="px-2 py-0.5 bg-neutral-800 hover:bg-neutral-750 text-white rounded font-bold"
-                                >
-                                  + (${((bObj.skills?.finance || 0) + 1) * 2000})
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Progression tier upgrade button */}
-                        {!selectedInfo.isCompany && bObj.progressionLevel !== undefined && bObj.progressionLevel < 3 && (() => {
-                          const currentTier = bObj.progressionLevel || 1;
-                          const progressMoneyCost = currentTier === 1 ? 1200 : 3500;
-                          const progressIronCost = currentTier === 1 ? 30 : 80;
-                          const progressstoneCost = currentTier === 1 ? 30 : 80;
-                          const progressMortarCost = currentTier === 1 ? 15 : 45;
-
-                          const hasResourcesToProgress = 
-                            gameState.money >= progressMoneyCost &&
-                            (gameState.resources.iron_ore || 0) >= progressIronCost &&
-                            (gameState.resources.limestone || 0) >= progressstoneCost &&
-                            (gameState.resources.mortar || 0) >= progressMortarCost;
-
-                          return (
-                            <div className="space-y-1">
+                            );
+                          })() : (
+                            <div className="space-y-2">
                               <button
-                                onClick={() => handleProgressTier(bObj.id)}
-                                disabled={!hasResourcesToProgress}
-                                className="w-full py-2 bg-amber-500 hover:bg-amber-400 text-neutral-950 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 disabled:opacity-45"
+                                onClick={() => handleUpgradeCompany(bObj.id)}
+                                disabled={gameState.money < Math.floor(5000 * Math.pow(1.8, bObj.level))}
+                                className="w-full py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-neutral-950 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 disabled:opacity-40"
                               >
-                                Progress Business Tier
+                                Upgrade Corporate Level (Cost: ${Math.floor(5000 * Math.pow(1.8, bObj.level))})
                               </button>
-
-                              <div className="flex flex-wrap gap-x-2 gap-y-0.5 justify-center font-mono text-[9px] text-neutral-400 bg-neutral-950 p-1.5 rounded border border-neutral-850">
-                                <span>Costs:</span>
-                                <span className={gameState.money >= progressMoneyCost ? "text-emerald-400" : "text-rose-450 font-bold"}>
-                                  ${progressMoneyCost}
-                                </span>
-                                <span className={(gameState.resources.iron_ore || 0) >= progressIronCost ? "text-slate-350" : "text-rose-450 font-bold"}>
-                                  {progressIronCost} Iron
-                                </span>
-                                <span className={(gameState.resources.limestone || 0) >= progressstoneCost ? "text-stone-400" : "text-rose-450 font-bold"}>
-                                  {progressstoneCost} Lime
-                                </span>
-                                <span className={(gameState.resources.mortar || 0) >= progressMortarCost ? "text-amber-500" : "text-rose-450 font-bold"}>
-                                  {progressMortarCost} Mortar
-                                </span>
-                              </div>
+                              
+                              {bObj.qualityScore !== undefined && (
+                                <div className="bg-neutral-950 p-2 rounded-lg border border-neutral-800 space-y-1 my-1">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-[9px] text-neutral-400 font-bold uppercase tracking-wider">Merger Quality Score</span>
+                                    <span className="font-mono font-black text-amber-400 text-xs">{Math.round(bObj.qualityScore)}%</span>
+                                  </div>
+                                  <p className="text-[8px] text-neutral-550 leading-normal">
+                                    Brand Multiplier: Corporate revenues are scaled by this quality score. Max out shop levels before merging to increase profit!
+                                  </p>
+                                </div>
+                              )}
                             </div>
-                          );
-                        })()}
-
-                        <div className="grid grid-cols-2 gap-2 mt-2">
-                          <button
-                            onClick={() => {
-                              setMovingBuildingId(bObj.id);
-                              setPlacingType(null);
-                            }}
-                            className="py-1.5 bg-neutral-800 hover:bg-neutral-750 text-neutral-300 rounded-lg font-semibold text-center"
-                          >
-                            Move
-                          </button>
-                          {!selectedInfo.isCompany && (
-                            <button
-                              onClick={() => handleDemolish(bObj.id)}
-                              className="py-1.5 bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 border border-rose-900/30 rounded-lg font-semibold flex items-center justify-center gap-1"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                              Demolish
-                            </button>
                           )}
+
+                          {/* Progression promotion action */}
+                          {!selectedInfo.isCompany && bObj.progressionLevel !== undefined && bObj.progressionLevel < 3 && (() => {
+                            const currentTier = bObj.progressionLevel || 1;
+                            const progressMoneyCost = currentTier === 1 ? 1200 : 3500;
+                            const progressIronCost = currentTier === 1 ? 30 : 80;
+                            const progressStoneCost = currentTier === 1 ? 30 : 80;
+                            const progressMortarCost = currentTier === 1 ? 15 : 45;
+
+                            const hasResourcesToProgress = 
+                              gameState.money >= progressMoneyCost &&
+                              (gameState.resources.iron_ore || 0) >= progressIronCost &&
+                              (gameState.resources.stone || 0) >= progressStoneCost &&
+                              (gameState.resources.mortar || 0) >= progressMortarCost;
+
+                            return (
+                              <div className="space-y-1">
+                                <button
+                                  onClick={() => handleProgressTier(bObj.id)}
+                                  disabled={!hasResourcesToProgress}
+                                  className="w-full py-2 bg-amber-500 hover:bg-amber-400 text-neutral-950 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 disabled:opacity-45"
+                                >
+                                  Progress Business Tier
+                                </button>
+
+                                <div className="flex flex-wrap gap-x-2 gap-y-0.5 justify-center font-mono text-[9px] text-neutral-400 bg-neutral-950 p-1.5 rounded border border-neutral-850">
+                                  <span>Costs:</span>
+                                  <span className={gameState.money >= progressMoneyCost ? "text-emerald-400" : "text-rose-450 font-bold"}>
+                                    ${progressMoneyCost}
+                                  </span>
+                                  <span className={(gameState.resources.iron_ore || 0) >= progressIronCost ? "text-slate-350" : "text-rose-450 font-bold"}>
+                                    {progressIronCost} Iron
+                                  </span>
+                                  <span className={(gameState.resources.stone || 0) >= progressStoneCost ? "text-stone-400" : "text-rose-450 font-bold"}>
+                                    {progressStoneCost} Stone
+                                  </span>
+                                  <span className={(gameState.resources.mortar || 0) >= progressMortarCost ? "text-amber-500" : "text-rose-450 font-bold"}>
+                                    {progressMortarCost} Mortar
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* Relocation and Demolition actions */}
+                          <div className="grid grid-cols-2 gap-2 mt-2 font-sans">
+                            <button
+                              onClick={() => {
+                                setMovingBuildingId(bObj.id);
+                                setPlacingType(null);
+                                setIsInspectorOpen(false);
+                              }}
+                              className="py-2 bg-neutral-800 hover:bg-neutral-750 text-neutral-300 rounded-xl font-bold text-center text-xs transition"
+                            >
+                              Move Location
+                            </button>
+                            {!selectedInfo.isCompany && (
+                              <button
+                                onClick={() => handleDemolish(bObj.id)}
+                                className="py-2 bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 border border-rose-900/30 rounded-xl font-bold flex items-center justify-center gap-1 text-xs transition"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                Demolish
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  ) : (
-                    <div className="h-44 border border-dashed border-neutral-850 rounded-2xl flex flex-col items-center justify-center p-4 text-center text-neutral-500">
-                      <Wrench className="h-6 w-6 text-neutral-600 mb-2" />
-                      <span>Select any building on the grid to inspect stats, manage production recipes, and upgrade business tiers.</span>
-                    </div>
-                  )}
+                  </div>
                 </div>
-
-                <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-850 mt-4 text-[10px] text-neutral-400 space-y-1 font-mono">
-                  <span className="text-amber-400 font-bold block">Grid Markers:</span>
-                  <div>• Land Node = Fertile Land crop farms</div>
-                  <div>• Lime Node = Limestone quarries</div>
-                  <div>• Iron Node = Iron Mines</div>
-                  <div>• Coal Node = Coal shaft mines</div>
-                  <div>• Oil Node = Oil Rigs</div>
-                </div>
-              </div>
+              )}
             </div>
           )}
 

@@ -184,3 +184,27 @@ Hydration Optimization & Starting Balances:
   - Issue: Attempting to place roads threw an undefined lookup error on `placingType.name` since roads are not in `BUILDING_CONFIGS`.
   - Resolution: Implemented safe checks for `placingType === "road"` fallback strings.
 
+--------------------------------------------------------------------------------
+5. VERSION 0.6: REFINED RECIPES, PROGRESSION AGE & SKILL TREE REDESIGN
+--------------------------------------------------------------------------------
+Industrial Progression Ages:
+* Foundation Age: Natural resources available are Stone, Wood, Iron Ore, and Fertile Land. Cement is imported from the market; players cannot manufacture Cement. Primary construction materials are Iron, Stone, Wood, and Mortar.
+* Industrial Age: Limestone, Coal, and Oil are unlocked, enabling Cement factories to manufacture Cement locally (Limestone + Coal -> Cement).
+
+Factory Size-Locked Industries:
+* Factory upgrades no longer expand recipe lists; instead, factory size dictates the available industry categories:
+  - Small Factory: Consumer Goods (Food, Grocery Goods, Clothes, Furniture, Mortar).
+  - Medium Factory: Heavy Industry (Cement, Steel, Fuel, Chemicals).
+  - Large Factory: Advanced Manufacturing (Electronics, Medicine, Vehicles).
+* Specialization is permanent upon selection. Upgrading factory level increases capacity metrics (internal storage, worker capacity, production queue) rather than unlocking recipes.
+
+Corporate Mergers & HQ Construction:
+* Corporate mergers now require physical construction resources (Money, Iron, Stone, Wood, Mortar) matching the HQ building configuration, simulating the cost of building a massive facility.
+
+Modular Skill Tree Redesign:
+* Small Businesses & Factories: Maximum level is set to 30, gaining 1 skill point per level. Contains exactly 5 industry-specific skills, each capping at level 5.
+* Promotion Requirements: Advancing business tiers is locked behind:
+  - Shop -> Showroom (Tier 2): Level 15 + Required Expansion-related Skill Level 3.
+  - Showroom -> Dealership (Tier 3): Level 30 + Required Expansion-related Skill Level 5.
+* Resource Mines & Quarries: Contains 3 universal skills (Extraction Technology, Heavy Machinery, and Storage Infrastructure) along with 2 unique skills based on the mined deposit (e.g. Conductivity Grade for Copper Mine).
+* Corporate Mergers: Have 7 skills: 4 Universal Corporate Skills (Corporate Finance, Brand Management, Supply Chain Management, Business Expansion) along with 3 Industry-Specific Corporate Skills.

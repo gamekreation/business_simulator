@@ -40,11 +40,7 @@ export interface GameState {
     level: number;
     revenue: number;
     profit: number;
-    skills: {
-      production: number;
-      marketing: number;
-      finance: number;
-    };
+    skills: Record<string, number>;
     qualityScore?: number; // V0.4 Merger Quality inherited from components
   }>;
   skills: {
