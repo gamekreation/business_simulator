@@ -237,3 +237,23 @@ Permanent Core Infrastructure:
 * Permanent Placement: Administrative HQ, Import HQ (Trade Center), Logistics HQ, and Builder Company cannot be demolished or reconstructed. They are hidden from the catalog build modal after tutorial completion.
 * Custom Infrastructure Upgrades: Integrated centralized infrastructure upgrade cost lookup lists. Upgrades check against specific pricing configs instead of the default level-up formulas.
 * Safe-Skip & Recovery: Includes a "Skip Tutorial" bypass button, and automatically skips the tutorial on initial loads if existing buildings are detected.
+
+--------------------------------------------------------------------------------
+7. VERSION 0.8: CORE ACHIEVEMENT SYSTEM & METRIC-DRIVEN HONORS
+--------------------------------------------------------------------------------
+Data-Driven Achievements Engine:
+* Configuration Schema: Designed a configuration model in `src/achievements/achievementConfig.ts` with categories (Business, Extraction, Manufacturing, Economy, Logistics, Expansion, Corporate, Education) and difficulty tiers (Bronze 🥉, Silver 🥈, Gold 🥇, Diamond 💎).
+* Dynamic Queries: Decoupled code logic from specific achievements. Checks are performed using generic parameter fields (`metricType`, `metricDetail`, `targetValue`).
+
+Reactive Unlock & Sound notifications:
+* Multi-Thread Watcher Effect: Evaluates achievement completion dynamically inside page updates. Unlocks trigger chime alerts immediately.
+* Audio Synthesis Double-Chime: Implemented chime chimes procedurally using the Web Audio API (`AudioContext`), offering a satisfying reward sound without relying on static file imports.
+* Slide-in Toast Notifications: Renders animated toast notices in the bottom-right corner displaying the unlocked milestone name, description, and currency rewards.
+
+Achievements UI Menu Tab:
+* Achievements Screen: Integrated a tab menu containing completion progress gauges, total premium gems wallet, category capsule button filters, search filter input, and dynamic milestone lists.
+* Premium Claiming: Features click-to-claim reward actions that deposit Money and Premium Gems dynamically, marking specific tiers as Claimed.
+
+Integrated Statistics Engine:
+* Stats Schema: Tracks total play time, total money spent/earned, cumulative construction counts, company boardroom mergers, trucks owned, resources hauled, and specific items produced/sold/imported.
+* Real-time Tracking: Connected statistics counters inside the simulation tick loop and handlers.

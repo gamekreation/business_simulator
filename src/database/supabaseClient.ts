@@ -89,6 +89,26 @@ export interface GameState {
     x: number;
     y: number;
   }>;
+  // V0.7 Premium Currency & Achievements
+  gems?: number;
+  unlockedAchievements?: string[]; // List of unlocked tier IDs
+  claimedAchievements?: string[];  // List of claimed tier IDs
+  stats?: PlayerStats;
+}
+
+export interface PlayerStats {
+  totalMoneyEarned: number;
+  totalMoneySpent: number;
+  resourcesProduced: Record<string, number>;
+  resourcesSold: Record<string, number>;
+  resourcesImported: Record<string, number>;
+  totalBuildingsConstructed: number;
+  totalCompaniesMerged: number;
+  totalTrucksPurchased: number;
+  totalPlayTimeSeconds: number;
+  totalConstructionTimeSaved: number;
+  totalSkillPointsSpent: number;
+  totalMovedResources: number;
 }
 
 export async function saveGame(state: GameState): Promise<boolean> {
@@ -148,6 +168,43 @@ function sanitizeGameState(state: any): GameState {
       seenBuildings.add(b.id);
       return true;
     });
+  }
+
+  // Achievements & Premium currency default init
+  if (state.gems === undefined) state.gems = 0;
+  if (!Array.isArray(state.unlockedAchievements)) state.unlockedAchievements = [];
+  if (!Array.isArray(state.claimedAchievements)) state.claimedAchievements = [];
+
+  // Stats default init
+  if (!state.stats) {
+    state.stats = {
+      totalMoneyEarned: 0,
+      totalMoneySpent: 0,
+      resourcesProduced: {},
+      resourcesSold: {},
+      resourcesImported: {},
+      totalBuildingsConstructed: 0,
+      totalCompaniesMerged: 0,
+      totalTrucksPurchased: 0,
+      totalPlayTimeSeconds: 0,
+      totalConstructionTimeSaved: 0,
+      totalSkillPointsSpent: 0,
+      totalMovedResources: 0
+    };
+  } else {
+    // Ensure all sub-objects exist
+    if (!state.stats.resourcesProduced) state.stats.resourcesProduced = {};
+    if (!state.stats.resourcesSold) state.stats.resourcesSold = {};
+    if (!state.stats.resourcesImported) state.stats.resourcesImported = {};
+    if (state.stats.totalMoneyEarned === undefined) state.stats.totalMoneyEarned = 0;
+    if (state.stats.totalMoneySpent === undefined) state.stats.totalMoneySpent = 0;
+    if (state.stats.totalBuildingsConstructed === undefined) state.stats.totalBuildingsConstructed = 0;
+    if (state.stats.totalCompaniesMerged === undefined) state.stats.totalCompaniesMerged = 0;
+    if (state.stats.totalTrucksPurchased === undefined) state.stats.totalTrucksPurchased = 0;
+    if (state.stats.totalPlayTimeSeconds === undefined) state.stats.totalPlayTimeSeconds = 0;
+    if (state.stats.totalConstructionTimeSaved === undefined) state.stats.totalConstructionTimeSaved = 0;
+    if (state.stats.totalSkillPointsSpent === undefined) state.stats.totalSkillPointsSpent = 0;
+    if (state.stats.totalMovedResources === undefined) state.stats.totalMovedResources = 0;
   }
 
   return state as GameState;

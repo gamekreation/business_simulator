@@ -47,118 +47,86 @@ import {
 } from "../buildings/departmentConfig";
 import { runSimulationTick, TickResult } from "../simulation/simulationEngine";
 import { GameState, saveGame, loadGame, isSupabaseConfigured } from "../database/supabaseClient";
+import { ACHIEVEMENT_GROUPS, evaluateAchievement } from "../achievements/achievementConfig";
 
 const LOCAL_SAVE_ID = "proto_player_v0_2";
 
-// Helper to pre-populate fixed natural resource nodes on the 20x20 grid procedurally
-// Helper to generate dynamic starting region layouts depending on chosen business
+// Helper to generate dynamic starting region layouts depending on chosen business with procedural randomization
 const generateRegionDepositNodes = (businessType: string) => {
   const nodes: { x: number; y: number; type: "iron_deposit" | "coal_deposit" | "oil_field" | "limestone_deposit" | "fertile_land" | "forest" | "stone_deposit" | "copper_deposit" | "silicon_deposit" | "uranium_deposit" }[] = [];
   
-  if (businessType === "furniture") {
-    const clusters = [
-      { type: "forest" as const, cx: 2, cy: 2, count: 12 },
-      { type: "forest" as const, cx: 8, cy: 8, count: 6 },
-      { type: "stone_deposit" as const, cx: 3, cy: 11, count: 5 },
-      { type: "iron_deposit" as const, cx: 11, cy: 2, count: 1 },
-      { type: "fertile_land" as const, cx: 12, cy: 12, count: 2 },
-    ];
-    clusters.forEach(({ type, cx, cy, count }) => {
-      const size = Math.ceil(Math.sqrt(count));
-      for (let i = 0; i < count; i++) {
-        const x = cx + (i % size);
-        const y = cy + Math.floor(i / size);
-        if (x >= 0 && x < 15 && y >= 0 && y < 15) nodes.push({ x, y, type });
-      }
-    });
-  } else if (businessType === "food") {
-    const clusters = [
-      { type: "fertile_land" as const, cx: 2, cy: 2, count: 14 },
-      { type: "fertile_land" as const, cx: 8, cy: 8, count: 8 },
-      { type: "forest" as const, cx: 2, cy: 12, count: 4 },
-      { type: "stone_deposit" as const, cx: 11, cy: 3, count: 1 },
-      { type: "iron_deposit" as const, cx: 12, cy: 12, count: 1 },
-    ];
-    clusters.forEach(({ type, cx, cy, count }) => {
-      const size = Math.ceil(Math.sqrt(count));
-      for (let i = 0; i < count; i++) {
-        const x = cx + (i % size);
-        const y = cy + Math.floor(i / size);
-        if (x >= 0 && x < 15 && y >= 0 && y < 15) nodes.push({ x, y, type });
-      }
-    });
-  } else if (businessType === "clothing") {
-    const clusters = [
-      { type: "fertile_land" as const, cx: 2, cy: 2, count: 12 },
-      { type: "forest" as const, cx: 10, cy: 2, count: 6 },
-      { type: "stone_deposit" as const, cx: 4, cy: 10, count: 5 },
-    ];
-    clusters.forEach(({ type, cx, cy, count }) => {
-      const size = Math.ceil(Math.sqrt(count));
-      for (let i = 0; i < count; i++) {
-        const x = cx + (i % size);
-        const y = cy + Math.floor(i / size);
-        if (x >= 0 && x < 15 && y >= 0 && y < 15) nodes.push({ x, y, type });
-      }
-    });
-  } else if (businessType === "grocery") {
-    const clusters = [
-      { type: "fertile_land" as const, cx: 3, cy: 3, count: 8 },
-      { type: "forest" as const, cx: 10, cy: 3, count: 6 },
-      { type: "stone_deposit" as const, cx: 5, cy: 10, count: 6 },
-    ];
-    clusters.forEach(({ type, cx, cy, count }) => {
-      const size = Math.ceil(Math.sqrt(count));
-      for (let i = 0; i < count; i++) {
-        const x = cx + (i % size);
-        const y = cy + Math.floor(i / size);
-        if (x >= 0 && x < 15 && y >= 0 && y < 15) nodes.push({ x, y, type });
-      }
-    });
+  let forestCount = 0;
+  let stoneCount = 0;
+  let ironCount = 0;
+  let landCount = 0;
+
+  // Clean faction names if needed (e.g. food_shop -> food)
+  const cleanType = businessType.replace("_shop", "");
+
+  if (cleanType === "furniture") {
+    forestCount = 18;
+    stoneCount = 8;
+    ironCount = 1;
+    landCount = 2;
+  } else if (cleanType === "food") {
+    forestCount = 4;
+    stoneCount = 2;
+    ironCount = 1;
+    landCount = 22;
+  } else if (cleanType === "clothing") {
+    forestCount = 6;
+    stoneCount = 5;
+    ironCount = 1;
+    landCount = 15;
+  } else if (cleanType === "grocery") {
+    forestCount = 8;
+    stoneCount = 6;
+    ironCount = 1;
+    landCount = 10;
   } else {
-    const clusters = [
-      { type: "stone_deposit" as const, cx: 2, cy: 2, count: 2 },
-      { type: "forest" as const, cx: 11, cy: 11, count: 2 },
-    ];
-    clusters.forEach(({ type, cx, cy, count }) => {
-      const size = Math.ceil(Math.sqrt(count));
-      for (let i = 0; i < count; i++) {
-        const x = cx + (i % size);
-        const y = cy + Math.floor(i / size);
-        if (x >= 0 && x < 15 && y >= 0 && y < 15) nodes.push({ x, y, type });
-      }
-    });
+    // Default fallback
+    forestCount = 8;
+    stoneCount = 6;
+    ironCount = 2;
+    landCount = 8;
   }
 
-  return nodes;
-};
-
-const getAdditionalRegionNodes = (businessType: string) => {
-  const nodes: { x: number; y: number; type: "iron_deposit" | "coal_deposit" | "oil_field" | "limestone_deposit" | "fertile_land" | "forest" | "stone_deposit" | "copper_deposit" | "silicon_deposit" | "uranium_deposit" }[] = [];
-
-  const clusters: { type: "iron_deposit" | "coal_deposit" | "oil_field" | "limestone_deposit" | "fertile_land" | "forest" | "stone_deposit" | "copper_deposit" | "silicon_deposit" | "uranium_deposit"; cx: number; cy: number; count: number }[] = [
-    { type: "coal_deposit", cx: 12, cy: 2, count: 2 },
-    { type: "limestone_deposit", cx: 2, cy: 12, count: 2 },
-    { type: "oil_field", cx: 12, cy: 12, count: 2 },
-    { type: "copper_deposit", cx: 7, cy: 1, count: 2 },
-    { type: "silicon_deposit", cx: 1, cy: 7, count: 2 },
-    { type: "uranium_deposit", cx: 7, cy: 13, count: 1 },
-  ];
-
-  if (businessType === "clothing" || businessType === "grocery" || businessType === "clothing_shop" || businessType === "grocery_shop") {
-    clusters.push({ type: "iron_deposit" as const, cx: 10, cy: 6, count: 2 });
-  }
-
-  clusters.forEach(({ type, cx, cy, count }) => {
-    const size = Math.ceil(Math.sqrt(count));
-    for (let i = 0; i < count; i++) {
-      const x = cx + (i % size);
-      const y = cy + Math.floor(i / size);
-      if (x >= 0 && x < 15 && y >= 0 && y < 15) {
-        nodes.push({ x, y, type });
+  // Help function to place cluster at a randomized center coordinate
+  const placeRandomCluster = (type: any, count: number) => {
+    let placed = false;
+    let attempts = 0;
+    while (!placed && attempts < 100) {
+      // Keep centers inside region boundaries with safety padding
+      const cx = Math.floor(Math.random() * 11) + 2; 
+      const cy = Math.floor(Math.random() * 11) + 2; 
+      
+      const overlap = nodes.some(n => Math.abs(n.x - cx) <= 1 && Math.abs(n.y - cy) <= 1);
+      if (!overlap || attempts > 50) {
+        const size = Math.ceil(Math.sqrt(count));
+        for (let i = 0; i < count; i++) {
+          // Add small jitter random offset to individual cluster elements
+          const jitterX = Math.random() > 0.85 ? (Math.random() > 0.5 ? 1 : -1) : 0;
+          const jitterY = Math.random() > 0.85 ? (Math.random() > 0.5 ? 1 : -1) : 0;
+          
+          const x = cx + (i % size) - Math.floor(size / 2) + jitterX;
+          const y = cy + Math.floor(i / size) - Math.floor(size / 2) + jitterY;
+          
+          if (x >= 0 && x < 15 && y >= 0 && y < 15) {
+            if (!nodes.some(n => n.x === x && n.y === y)) {
+              nodes.push({ x, y, type });
+            }
+          }
+        }
+        placed = true;
       }
+      attempts++;
     }
-  });
+  };
+
+  if (forestCount > 0) placeRandomCluster("forest", forestCount);
+  if (stoneCount > 0) placeRandomCluster("stone_deposit", stoneCount);
+  if (ironCount > 0) placeRandomCluster("iron_deposit", ironCount);
+  if (landCount > 0) placeRandomCluster("fertile_land", landCount);
 
   return nodes;
 };
@@ -192,8 +160,12 @@ export default function BusinessEmpireGame() {
   });
 
   // --- UI State ---
-  const [activeTab, setActiveTab] = useState<"map" | "logistics" | "mergers" | "skills" | "dashboard">("map");
+  const [activeTab, setActiveTab] = useState<"map" | "logistics" | "mergers" | "skills" | "dashboard" | "achievements">("map");
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
+  
+  // Achievements UI state
+  const [achievementCategory, setAchievementCategory] = useState<string>("all");
+  const [achievementSearch, setAchievementSearch] = useState<string>("");
   
   // Placement State
   const [placingType, setPlacingType] = useState<string | null>(null);
@@ -204,6 +176,34 @@ export default function BusinessEmpireGame() {
   const [catalogCategory, setCatalogCategory] = useState<"infrastructure" | "extraction" | "industry" | "commerce">("extraction");
   const [isBuildMenuOpen, setIsBuildMenuOpen] = useState<boolean>(false);
   const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(false);
+
+  // Achievements notification toasts
+  const [activeToasts, setActiveToasts] = useState<Array<{ id: string; title: string; desc: string; reward: string }>>([]);
+
+  const playChimeSound = () => {
+    if (typeof window === "undefined") return;
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const chime = (delay: number, pitch: number) => {
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(pitch, audioCtx.currentTime + delay);
+        gainNode.gain.setValueAtTime(0.12, audioCtx.currentTime + delay);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + 0.45);
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        osc.start(audioCtx.currentTime + delay);
+        osc.stop(audioCtx.currentTime + delay + 0.5);
+      };
+      chime(0, 523.25);
+      chime(0.1, 659.25);
+      chime(0.2, 783.99);
+      chime(0.3, 1046.50);
+    } catch (err) {
+      console.warn("Chime Audio context blocked:", err);
+    }
+  };
 
   // --- Tutorial State ---
   const [tutorialStep, setTutorialStep] = useState<number>(1);
@@ -302,6 +302,56 @@ export default function BusinessEmpireGame() {
 
     return () => clearInterval(timer);
   }, [gameState]);
+
+  // --- Achievement Unlock Detection System ---
+  useEffect(() => {
+    if (!gameState || tutorialStep > 0 || !gameState.stats) return;
+
+    const newUnlocked: string[] = [];
+    let stateChanged = false;
+    let toastToAdd: any = null;
+
+    ACHIEVEMENT_GROUPS.forEach(group => {
+      group.tiers.forEach(tier => {
+        const { isCompleted } = evaluateAchievement(tier, gameState);
+        const alreadyUnlocked = gameState.unlockedAchievements?.includes(tier.id);
+
+        if (isCompleted && !alreadyUnlocked) {
+          newUnlocked.push(tier.id);
+          stateChanged = true;
+          toastToAdd = {
+            id: `toast-${Date.now()}-${tier.id}`,
+            title: tier.name,
+            desc: tier.description,
+            reward: `₹${tier.rewardMoney.toLocaleString()} + ${tier.rewardGems} Gems`
+          };
+        }
+      });
+    });
+
+    if (stateChanged && newUnlocked.length > 0) {
+      setGameState(prev => {
+        const unlockedList = [...(prev.unlockedAchievements || [])];
+        newUnlocked.forEach(id => {
+          if (!unlockedList.includes(id)) {
+            unlockedList.push(id);
+          }
+        });
+        return {
+          ...prev,
+          unlockedAchievements: unlockedList
+        };
+      });
+
+      if (toastToAdd) {
+        setActiveToasts(prev => [...prev, toastToAdd]);
+        playChimeSound();
+        setTimeout(() => {
+          setActiveToasts(prev => prev.filter(t => t.id !== toastToAdd.id));
+        }, 4000);
+      }
+    }
+  }, [gameState.stats, gameState.buildings.length, gameState.vehicles.length, gameState.unlocked_land]);
 
   // Handle explicit or auto saving
   const triggerSave = async (stateToSave = gameState) => {
@@ -577,10 +627,32 @@ export default function BusinessEmpireGame() {
             updatedResources.wood = Math.max(0, (updatedResources.wood || 0) - (config.baseWoodCost || 0));
           }
 
+          const spent = isTutorialFree ? 0 : config.baseCost;
+          const currentStats = prev.stats || {
+            totalMoneyEarned: 0,
+            totalMoneySpent: 0,
+            resourcesProduced: {},
+            resourcesSold: {},
+            resourcesImported: {},
+            totalBuildingsConstructed: 0,
+            totalCompaniesMerged: 0,
+            totalTrucksPurchased: 0,
+            totalPlayTimeSeconds: 0,
+            totalConstructionTimeSaved: 0,
+            totalSkillPointsSpent: 0,
+            totalMovedResources: 0
+          };
+          const updatedStats = {
+            ...currentStats,
+            totalBuildingsConstructed: (currentStats.totalBuildingsConstructed || 0) + 1,
+            totalMoneySpent: (currentStats.totalMoneySpent || 0) + spent
+          };
+
           return {
             ...prev,
-            money: prev.money - (isTutorialFree ? 0 : config.baseCost),
+            money: prev.money - spent,
             resources: updatedResources,
+            stats: updatedStats,
             buildings: [
               ...prev.buildings,
               {
@@ -591,6 +663,7 @@ export default function BusinessEmpireGame() {
                 level: 1,
                 progressionLevel: 1, // Default Shop/Office
                 recipeId: placingType.includes("factory") ? "" : undefined,
+                productionQuota: config.category === "factory" ? -1 : undefined,
               }
             ],
             constructionQueue: [...(prev.constructionQueue || []), newProject]
@@ -693,23 +766,30 @@ export default function BusinessEmpireGame() {
   };
 
   const handleFinishTutorial = () => {
-    const chosen = tutorialSelectedBusiness || "food_shop";
-    const additional = getAdditionalRegionNodes(chosen);
+    setTutorialStep(0);
+    setSaveStatus("Tutorial Finished");
+  };
+
+  const handleClaimAchievementReward = (tier: any) => {
     setGameState(prev => {
-      const existing = [...prev.depositNodes];
-      const merged = [...existing];
-      additional.forEach(node => {
-        if (!merged.some(n => n.x === node.x && n.y === node.y)) {
-          merged.push(node);
-        }
-      });
+      const claimedList = [...(prev.claimedAchievements || [])];
+      if (claimedList.includes(tier.id)) return prev;
+      claimedList.push(tier.id);
+
+      const updatedResources = { ...prev.resources };
+      if (tier.rewardIron) updatedResources.iron_ore = (updatedResources.iron_ore || 0) + tier.rewardIron;
+      if (tier.rewardStone) updatedResources.stone = (updatedResources.stone || 0) + tier.rewardStone;
+      if (tier.rewardMortar) updatedResources.mortar = (updatedResources.mortar || 0) + tier.rewardMortar;
+      if (tier.rewardWood) updatedResources.wood = (updatedResources.wood || 0) + tier.rewardWood;
+
       return {
         ...prev,
-        depositNodes: merged
+        money: prev.money + tier.rewardMoney,
+        gems: (prev.gems || 0) + tier.rewardGems,
+        resources: updatedResources,
+        claimedAchievements: claimedList
       };
     });
-    setTutorialStep(0);
-    setSaveStatus("Tutorial Finished & Map Expanded");
   };
 
   const handleDemolish = (id: string) => {
@@ -801,10 +881,30 @@ export default function BusinessEmpireGame() {
           totalTime: duration
         };
 
+        const currentStats = prev.stats || {
+          totalMoneyEarned: 0,
+          totalMoneySpent: 0,
+          resourcesProduced: {},
+          resourcesSold: {},
+          resourcesImported: {},
+          totalBuildingsConstructed: 0,
+          totalCompaniesMerged: 0,
+          totalTrucksPurchased: 0,
+          totalPlayTimeSeconds: 0,
+          totalConstructionTimeSaved: 0,
+          totalSkillPointsSpent: 0,
+          totalMovedResources: 0
+        };
+        const updatedStats = {
+          ...currentStats,
+          totalMoneySpent: (currentStats.totalMoneySpent || 0) + moneyCost
+        };
+
         return {
           ...prev,
           money: prev.money - moneyCost,
           resources: updatedResources,
+          stats: updatedStats,
           constructionQueue: [...(prev.constructionQueue || []), newProject]
         };
       }
@@ -1080,10 +1180,32 @@ export default function BusinessEmpireGame() {
         capacityLevel: 1,
         fuelLevel: 1
       };
+      
+      const stats = prev.stats || {
+        totalMoneyEarned: 0,
+        totalMoneySpent: 0,
+        resourcesProduced: {},
+        resourcesSold: {},
+        resourcesImported: {},
+        totalBuildingsConstructed: 0,
+        totalCompaniesMerged: 0,
+        totalTrucksPurchased: 0,
+        totalPlayTimeSeconds: 0,
+        totalConstructionTimeSaved: 0,
+        totalSkillPointsSpent: 0,
+        totalMovedResources: 0
+      };
+      const updatedStats = {
+        ...stats,
+        totalTrucksPurchased: (stats.totalTrucksPurchased || 0) + 1,
+        totalMoneySpent: (stats.totalMoneySpent || 0) + config.cost
+      };
+
       return {
         ...prev,
         money: prev.money - config.cost,
-        vehicles: [...prev.vehicles, newVeh]
+        vehicles: [...prev.vehicles, newVeh],
+        stats: updatedStats
       };
     });
   };
@@ -1097,9 +1219,29 @@ export default function BusinessEmpireGame() {
       const cost = level * 800;
 
       if (prev.money >= cost) {
+        const stats = prev.stats || {
+          totalMoneyEarned: 0,
+          totalMoneySpent: 0,
+          resourcesProduced: {},
+          resourcesSold: {},
+          resourcesImported: {},
+          totalBuildingsConstructed: 0,
+          totalCompaniesMerged: 0,
+          totalTrucksPurchased: 0,
+          totalPlayTimeSeconds: 0,
+          totalConstructionTimeSaved: 0,
+          totalSkillPointsSpent: 0,
+          totalMovedResources: 0
+        };
+        const updatedStats = {
+          ...stats,
+          totalMoneySpent: (stats.totalMoneySpent || 0) + cost
+        };
+
         return {
           ...prev,
           money: prev.money - cost,
+          stats: updatedStats,
           vehicles: prev.vehicles.map(v => {
             if (v.id === vehId) {
               return {
@@ -1308,11 +1450,33 @@ export default function BusinessEmpireGame() {
         updatedResources.wood = Math.max(0, (updatedResources.wood || 0) - hqConfig.baseWoodCost);
       }
 
+      const spent = hqConfig?.baseCost || 0;
+      const currentStats = prev.stats || {
+        totalMoneyEarned: 0,
+        totalMoneySpent: 0,
+        resourcesProduced: {},
+        resourcesSold: {},
+        resourcesImported: {},
+        totalBuildingsConstructed: 0,
+        totalCompaniesMerged: 0,
+        totalTrucksPurchased: 0,
+        totalPlayTimeSeconds: 0,
+        totalConstructionTimeSaved: 0,
+        totalSkillPointsSpent: 0,
+        totalMovedResources: 0
+      };
+      const updatedStats = {
+        ...currentStats,
+        totalCompaniesMerged: (currentStats.totalCompaniesMerged || 0) + 1,
+        totalMoneySpent: (currentStats.totalMoneySpent || 0) + spent
+      };
+
       return {
         ...prev,
-        money: prev.money - (hqConfig?.baseCost || 0),
+        money: prev.money - spent,
         resources: updatedResources,
-        buildings: updatedBuildings
+        buildings: updatedBuildings,
+        stats: updatedStats
       };
     });
 
@@ -1942,11 +2106,11 @@ export default function BusinessEmpireGame() {
           
           {/* TAB SYSTEM */}
           <div className="flex bg-neutral-900 border border-neutral-850 p-1.5 rounded-2xl text-xs font-semibold shadow-md">
-            <button
+             <button
               onClick={() => setActiveTab("map")}
               className={`flex-1 py-2 text-center rounded-xl transition ${activeTab === "map" ? "bg-neutral-800 text-white" : "text-neutral-400 hover:text-neutral-200"}`}
             >
-              Grid Map (10x10)
+              Grid Map (15x15)
             </button>
             <button
               onClick={() => setActiveTab("mergers")}
@@ -1971,6 +2135,12 @@ export default function BusinessEmpireGame() {
               className={`flex-1 py-2 text-center rounded-xl transition ${activeTab === "dashboard" ? "bg-neutral-800 text-white" : "text-neutral-400 hover:text-neutral-200"}`}
             >
               Dashboard
+            </button>
+            <button
+              onClick={() => setActiveTab("achievements")}
+              className={`flex-1 py-2 text-center rounded-xl transition ${activeTab === "achievements" ? "bg-neutral-800 text-white" : "text-neutral-400 hover:text-neutral-200"}`}
+            >
+              🏆 Achievements
             </button>
           </div>
 
@@ -2242,7 +2412,8 @@ export default function BusinessEmpireGame() {
                           }
 
                           // Hide permanent core infrastructure after tutorial is complete
-                          const isInfrastructurePermanent = ["town_hall", "trade_center", "logistics_hq", "builder_company", "warehouse"].includes(key);
+                          // Hide permanent core infrastructure after tutorial is complete
+                          const isInfrastructurePermanent = ["town_hall", "trade_center", "logistics_hq", "builder_company"].includes(key);
                           if (isInfrastructurePermanent) return false;
                           
                           let mappedCategory = "";
@@ -2446,23 +2617,26 @@ export default function BusinessEmpireGame() {
                       )}
 
                       {/* Factory Target Quotas */}
-                      {selectedInfo.config.category === "factory" && bObj.productionQuota !== undefined && (
+                      {selectedInfo.config.category === "factory" && (
                         <div className="bg-neutral-950 p-2.5 rounded-xl border border-neutral-800 space-y-2">
                           <span className="text-[10px] text-neutral-450 font-bold uppercase block tracking-wider">Production Limit Target</span>
                           <div className="flex items-center gap-1.5">
-                            {[-1, 50, 100, 250, 500].map(quotaVal => (
-                              <button
-                                key={quotaVal}
-                                onClick={() => handleSetProductionQuota(bObj.id, quotaVal)}
-                                className={`flex-1 py-1 rounded text-[10px] font-bold font-mono transition ${
-                                  bObj.productionQuota === quotaVal 
-                                    ? "bg-amber-505 text-neutral-950" 
-                                    : "bg-neutral-900 hover:bg-neutral-850 text-neutral-400 border border-neutral-850"
-                                }`}
-                              >
+                            {[-1, 50, 100, 250, 500].map(quotaVal => {
+                              const currentQuota = bObj.productionQuota !== undefined ? bObj.productionQuota : -1;
+                              return (
+                                <button
+                                  key={quotaVal}
+                                  onClick={() => handleSetProductionQuota(bObj.id, quotaVal)}
+                                  className={`flex-1 py-1 rounded text-[10px] font-bold font-mono transition ${
+                                    currentQuota === quotaVal 
+                                      ? "bg-amber-500 text-neutral-950 font-black shadow" 
+                                      : "bg-neutral-900 hover:bg-neutral-850 text-neutral-400 border border-neutral-850"
+                                  }`}
+                                >
                                 {quotaVal === -1 ? "Infinite" : quotaVal}
-                              </button>
-                            ))}
+                               </button>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -3219,7 +3393,7 @@ export default function BusinessEmpireGame() {
                       {/* Import Buttons */}
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-[10px] font-mono">
                         {Object.entries(RESOURCES_CONFIG)
-                          .filter(([id, cfg]) => cfg.category === "natural" || id === "mortar")
+                          .filter(([id, cfg]) => cfg.category === "natural" || id === "mortar" || id === "cement")
                           .map(([resId, cfg]) => {
                             const costPerUnit = cfg.basePrice * 2.5; // Premium import price
                             const importQty = 50;
@@ -3301,6 +3475,207 @@ export default function BusinessEmpireGame() {
               </div>
             </div>
           )}
+
+          {activeTab === "achievements" && (
+            <div className="space-y-6">
+              {/* Stats Summary Panel */}
+              <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 shadow-xl space-y-4">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-neutral-800 pb-4">
+                  <div>
+                    <h2 className="text-lg font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                      🏆 Corporate Honors & Achievements
+                    </h2>
+                    <p className="text-xs text-neutral-400">
+                      Complete milestones to claim premium rewards and unlock business skills.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="bg-neutral-950 p-2.5 px-4 rounded-xl border border-neutral-850 text-center font-mono">
+                      <span className="text-[10px] text-neutral-500 uppercase tracking-widest block">Premium Currency</span>
+                      <span className="text-lg font-black text-cyan-400">💎 {(gameState.gems || 0)} Gems</span>
+                    </div>
+                    <div className="bg-neutral-950 p-2.5 px-4 rounded-xl border border-neutral-850 text-center font-mono">
+                      <span className="text-[10px] text-neutral-500 uppercase tracking-widest block">Total Progress</span>
+                      <span className="text-lg font-black text-amber-500">
+                        {(() => {
+                          const totalTiers = ACHIEVEMENT_GROUPS.reduce((sum, g) => sum + g.tiers.length, 0);
+                          const unlockedCount = gameState.unlockedAchievements?.length || 0;
+                          return `${unlockedCount} / ${totalTiers} (${Math.round((unlockedCount / (totalTiers || 1)) * 100)}%)`;
+                        })()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Player Stats grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 text-[10px] font-mono">
+                  <div className="bg-neutral-950/60 p-2.5 rounded-xl border border-neutral-850/50">
+                    <span className="text-neutral-500 block">Money Earned</span>
+                    <span className="text-neutral-300 font-bold text-xs">${(gameState.stats?.totalMoneyEarned || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                  </div>
+                  <div className="bg-neutral-950/60 p-2.5 rounded-xl border border-neutral-850/50">
+                    <span className="text-neutral-500 block">Money Reinvested</span>
+                    <span className="text-neutral-300 font-bold text-xs">${(gameState.stats?.totalMoneySpent || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                  </div>
+                  <div className="bg-neutral-950/60 p-2.5 rounded-xl border border-neutral-850/50">
+                    <span className="text-neutral-500 block">Buildings Built</span>
+                    <span className="text-neutral-300 font-bold text-xs">{(gameState.stats?.totalBuildingsConstructed || 0)} Units</span>
+                  </div>
+                  <div className="bg-neutral-950/60 p-2.5 rounded-xl border border-neutral-850/50">
+                    <span className="text-neutral-500 block">Boardroom Mergers</span>
+                    <span className="text-neutral-300 font-bold text-xs">{(gameState.stats?.totalCompaniesMerged || 0)} HQs</span>
+                  </div>
+                  <div className="bg-neutral-950/60 p-2.5 rounded-xl border border-neutral-850/50">
+                    <span className="text-neutral-500 block">Fleet Trucks Bought</span>
+                    <span className="text-neutral-300 font-bold text-xs">{(gameState.stats?.totalTrucksPurchased || 0)} Trucks</span>
+                  </div>
+                  <div className="bg-neutral-950/60 p-2.5 rounded-xl border border-neutral-850/50">
+                    <span className="text-neutral-500 block">Resources Hauled</span>
+                    <span className="text-neutral-300 font-bold text-xs">{(gameState.stats?.totalMovedResources || 0).toLocaleString()} VU</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Achievements Filters and Search */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1 flex gap-1.5 overflow-x-auto pb-1">
+                  {["all", "business", "extraction", "manufacturing", "economy", "logistics", "expansion", "corporate", "education"].map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setAchievementCategory(cat)}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition shrink-0 ${
+                        achievementCategory === cat
+                          ? "bg-amber-500 text-neutral-950 shadow"
+                          : "bg-neutral-900 border border-neutral-800 text-neutral-450 hover:text-neutral-250"
+                      }`}
+                    >
+                      {cat === "all" ? "🌐 All" : cat === "business" ? "🏢 Business" : cat === "extraction" ? "⛏ Extraction" : cat === "manufacturing" ? "🏭 Production" : cat === "economy" ? "💰 Economy" : cat === "logistics" ? "🚛 Logistics" : cat === "expansion" ? "🌍 Land" : cat === "corporate" ? "🤝 Mergers" : "📚 Education"}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search achievements..."
+                  value={achievementSearch}
+                  onChange={(e) => setAchievementSearch(e.target.value)}
+                  className="bg-neutral-900 border border-neutral-800 p-2 rounded-xl text-xs w-full sm:w-64 placeholder-neutral-600 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              {/* Achievements List Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {ACHIEVEMENT_GROUPS.filter(group => {
+                  if (achievementCategory !== "all" && group.category !== achievementCategory) return false;
+                  if (achievementSearch) {
+                    const term = achievementSearch.toLowerCase();
+                    return group.name.toLowerCase().includes(term) || group.description.toLowerCase().includes(term);
+                  }
+                  return true;
+                }).map(group => {
+                  return (
+                    <div key={group.id} className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 shadow flex flex-col justify-between space-y-4">
+                      <div>
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest font-mono">
+                              {group.category}
+                            </span>
+                            <h3 className="text-sm font-bold text-neutral-200 mt-0.5">{group.name}</h3>
+                            <p className="text-[10px] text-neutral-400 mt-0.5">{group.description}</p>
+                          </div>
+                        </div>
+
+                        {/* Tiers displays */}
+                        <div className="mt-4 space-y-3">
+                          {group.tiers.map(tier => {
+                            const { current, target, isCompleted } = evaluateAchievement(tier, gameState);
+                            const isUnlocked = gameState.unlockedAchievements?.includes(tier.id);
+                            const isClaimed = gameState.claimedAchievements?.includes(tier.id);
+
+                            const badgeIcon = tier.difficulty === "bronze" ? "🥉" : tier.difficulty === "silver" ? "🥈" : tier.difficulty === "gold" ? "🥇" : "💎";
+                            const badgeColor = tier.difficulty === "bronze" ? "text-amber-700" : tier.difficulty === "silver" ? "text-slate-400" : tier.difficulty === "gold" ? "text-amber-400" : "text-cyan-400";
+
+                            return (
+                              <div key={tier.id} className="bg-neutral-950 border border-neutral-850 p-3 rounded-xl space-y-2">
+                                <div className="flex justify-between items-center text-xs">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className={`text-sm ${badgeColor}`} title={`${tier.difficulty} tier`}>{badgeIcon}</span>
+                                    <div>
+                                      <span className="font-bold text-neutral-300 block">{tier.name}</span>
+                                      <span className="text-[9px] text-neutral-500 block leading-normal">{tier.description}</span>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    {isClaimed ? (
+                                      <span className="text-[9px] font-bold text-emerald-450 uppercase tracking-wider bg-emerald-950/40 p-1 px-2.5 rounded border border-emerald-900/30">Claimed ✓</span>
+                                    ) : isUnlocked ? (
+                                      <button
+                                        onClick={() => handleClaimAchievementReward(tier)}
+                                        className="py-1 px-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-450 text-neutral-950 font-black text-[9px] uppercase tracking-wider rounded transition"
+                                      >
+                                        Claim Reward
+                                      </button>
+                                    ) : (
+                                      <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-wider bg-neutral-900/60 p-1 px-2.5 rounded border border-neutral-850">Locked</span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Progress bar */}
+                                <div className="space-y-1">
+                                  <div className="flex justify-between text-[9px] font-mono text-neutral-500">
+                                    <span>Progress: {Math.floor(current).toLocaleString()} / {target.toLocaleString()}</span>
+                                    <span>{Math.min(100, Math.round((current / target) * 100))}%</span>
+                                  </div>
+                                  <div className="w-full bg-neutral-900 rounded-full h-1 overflow-hidden">
+                                    <div 
+                                      className={`h-full transition-all duration-300 ${isUnlocked ? "bg-emerald-500" : "bg-amber-500/80"}`}
+                                      style={{ width: `${Math.min(100, (current / target) * 100)}%` }}
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* Rewards display */}
+                                <div className="flex flex-wrap justify-end items-center gap-1.5 text-[9px] font-mono text-neutral-500 border-t border-neutral-900/60 pt-1.5">
+                                  <span>Reward:</span>
+                                  <span className="text-emerald-400 font-bold">${tier.rewardMoney.toLocaleString()}</span>
+                                  <span>+</span>
+                                  <span className="text-cyan-400 font-bold">{tier.rewardGems} Gems</span>
+                                  {tier.rewardIron && <span className="text-slate-400 font-bold">+{tier.rewardIron} Iron</span>}
+                                  {tier.rewardStone && <span className="text-neutral-400 font-bold">+{tier.rewardStone} Stone</span>}
+                                  {tier.rewardMortar && <span className="text-amber-600 font-bold">+{tier.rewardMortar} Mortar</span>}
+                                  {tier.rewardWood && <span className="text-amber-500 font-bold">+{tier.rewardWood} Wood</span>}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Toast Notification Deck for achievements */}
+          <div className="fixed bottom-6 right-6 z-[120] space-y-3 pointer-events-none">
+            {activeToasts.map(toast => (
+              <div key={toast.id} className="bg-neutral-900 border-2 border-emerald-500/80 p-4 rounded-xl shadow-2xl w-72 pointer-events-auto animate-in slide-in-from-right-5 duration-200">
+                <div className="flex items-start gap-3">
+                  <span className="text-xl">🏆</span>
+                  <div className="flex-1">
+                    <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest font-mono">Achievement Unlocked!</span>
+                    <h4 className="text-xs font-bold text-neutral-200 mt-0.5">{toast.title}</h4>
+                    <p className="text-[10px] text-neutral-400 leading-snug mt-0.5">{toast.desc}</p>
+                    <div className="mt-2 text-[9px] font-mono font-bold text-amber-400">
+                      Reward Unlocked: {toast.reward}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
 
         </div>
       </main>

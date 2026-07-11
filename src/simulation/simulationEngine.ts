@@ -168,6 +168,10 @@ export function runSimulationTick(state: GameState): TickResult {
       if (addedQty > 0) {
         b.localResources[resId] = currentLocal + addedQty;
         workingBuildingIds.add(b.id);
+        if (nextState.stats) {
+          if (!nextState.stats.resourcesProduced) nextState.stats.resourcesProduced = {};
+          nextState.stats.resourcesProduced[resId] = (nextState.stats.resourcesProduced[resId] || 0) + addedQty;
+        }
       } else if (prodRate > 0 && spaceLeft <= 0) {
         if (Math.random() < 0.1) {
           logs.push(`${config.name} storage full! Production halted.`);
@@ -276,6 +280,10 @@ export function runSimulationTick(state: GameState): TickResult {
           nextState.resources[primaryOutput.resource] = (nextState.resources[primaryOutput.resource] || 0) + actualQty;
           logs.push(`${config.name} crafted ${actualQty.toFixed(1)} ${outputConfig.name} via ${recipe.name}.`);
           workingBuildingIds.add(b.id);
+          if (nextState.stats) {
+            if (!nextState.stats.resourcesProduced) nextState.stats.resourcesProduced = {};
+            nextState.stats.resourcesProduced[primaryOutput.resource] = (nextState.stats.resourcesProduced[primaryOutput.resource] || 0) + actualQty;
+          }
         } else {
           logs.push(`Factory paused: no warehouse space for ${outputConfig.name}.`);
         }
@@ -389,6 +397,10 @@ export function runSimulationTick(state: GameState): TickResult {
         logs.push(`${config.name} sold ${toSell.toFixed(1)} ${resConfig.name} for $${rev.toFixed(1)}.`);
         if (toSell > 0) {
           workingBuildingIds.add(b.id);
+          if (nextState.stats) {
+            if (!nextState.stats.resourcesSold) nextState.stats.resourcesSold = {};
+            nextState.stats.resourcesSold[itemToSell] = (nextState.stats.resourcesSold[itemToSell] || 0) + toSell;
+          }
         }
       }
     }
@@ -504,6 +516,10 @@ export function runSimulationTick(state: GameState): TickResult {
         if (added > 0) {
           b.localResources[resId] = currentLocal + added;
           logs.push(`Farm finished crop cycle: Produced ${added.toFixed(0)}x ${RESOURCES_CONFIG[resId].name} stored in local farm silo.`);
+          if (nextState.stats) {
+            if (!nextState.stats.resourcesProduced) nextState.stats.resourcesProduced = {};
+            nextState.stats.resourcesProduced[resId] = (nextState.stats.resourcesProduced[resId] || 0) + added;
+          }
         } else {
           logs.push(`Farm crop cycle completed but local storage silo is full! Yield lost.`);
         }
@@ -544,6 +560,9 @@ export function runSimulationTick(state: GameState): TickResult {
       if (amountToHaul > 0) {
         activeShipment.qtyDelivered += amountToHaul;
         nextState.resources[activeShipment.resource] = (nextState.resources[activeShipment.resource] || 0) + amountToHaul;
+        if (nextState.stats) {
+          nextState.stats.totalMovedResources = (nextState.stats.totalMovedResources || 0) + amountToHaul;
+        }
         
         // Log origin building as active
         if (activeShipment.buildingId) {
@@ -632,6 +651,10 @@ export function runSimulationTick(state: GameState): TickResult {
       if (resConfig) {
         nextState.resources[imp.resource] = (nextState.resources[imp.resource] || 0) + imp.qty;
         logs.push(`Import Order Completed: Received ${imp.qty}x ${resConfig.name} in global warehouse.`);
+        if (nextState.stats) {
+          if (!nextState.stats.resourcesImported) nextState.stats.resourcesImported = {};
+          nextState.stats.resourcesImported[imp.resource] = (nextState.stats.resourcesImported[imp.resource] || 0) + imp.qty;
+        }
       }
     });
 
@@ -652,6 +675,30 @@ export function runSimulationTick(state: GameState): TickResult {
 
   if (nextState.money < 0) {
     nextState.money = 0;
+  }
+
+  // Initialize stats if missing
+  if (!nextState.stats) {
+    nextState.stats = {
+      totalMoneyEarned: 0,
+      totalMoneySpent: 0,
+      resourcesProduced: {},
+      resourcesSold: {},
+      resourcesImported: {},
+      totalBuildingsConstructed: 0,
+      totalCompaniesMerged: 0,
+      totalTrucksPurchased: 0,
+      totalPlayTimeSeconds: 0,
+      totalConstructionTimeSaved: 0,
+      totalSkillPointsSpent: 0,
+      totalMovedResources: 0
+    };
+  }
+
+  // Increment metrics
+  nextState.stats.totalPlayTimeSeconds = (nextState.stats.totalPlayTimeSeconds || 0) + 1;
+  if (revenueThisTick > 0) {
+    nextState.stats.totalMoneyEarned = (nextState.stats.totalMoneyEarned || 0) + revenueThisTick;
   }
 
   return {
