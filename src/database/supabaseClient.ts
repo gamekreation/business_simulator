@@ -84,6 +84,8 @@ export interface GameState {
     type: "construct" | "upgrade";
     timeRemaining: number; // in seconds
     totalTime: number; // original time duration
+    daysRemaining?: number;
+    totalDays?: number;
   }>;
   roads?: Array<{
     x: number;
@@ -94,6 +96,14 @@ export interface GameState {
   unlockedAchievements?: string[]; // List of unlocked tier IDs
   claimedAchievements?: string[];  // List of claimed tier IDs
   stats?: PlayerStats;
+  // V0.8 Calendar and Time Preset
+  calendar?: {
+    year: number;
+    month: number;
+    day: number;
+    dayProgressSeconds: number;
+  };
+  timePresetMode?: "debug" | "fast_testing" | "development" | "beta_testing" | "release";
 }
 
 export interface PlayerStats {
@@ -205,6 +215,18 @@ function sanitizeGameState(state: any): GameState {
     if (state.stats.totalConstructionTimeSaved === undefined) state.stats.totalConstructionTimeSaved = 0;
     if (state.stats.totalSkillPointsSpent === undefined) state.stats.totalSkillPointsSpent = 0;
     if (state.stats.totalMovedResources === undefined) state.stats.totalMovedResources = 0;
+  }
+
+  if (!state.calendar) {
+    state.calendar = {
+      year: 1,
+      month: 1,
+      day: 1,
+      dayProgressSeconds: 0
+    };
+  }
+  if (!state.timePresetMode) {
+    state.timePresetMode = "development";
   }
 
   return state as GameState;

@@ -1,5 +1,6 @@
 import { BUILDING_CONFIGS, BuildingConfig, RESOURCES_CONFIG, FACTORY_RECIPES, VEHICLE_CONFIGS } from "../buildings/buildingConfig";
 import { GameState } from "../database/supabaseClient";
+import { getSecondsPerGameDay } from "./timeConfig";
 
 export interface TickResult {
   nextState: GameState;
@@ -14,6 +15,63 @@ export function runSimulationTick(state: GameState): TickResult {
   const nextState: GameState = JSON.parse(JSON.stringify(state));
   const logs: string[] = [];
   const workingBuildingIds = new Set<string>();
+
+  const secondsPerGameDay = getSecondsPerGameDay(nextState);
+
+  // V0.8 Calendar progression
+  if (!nextState.calendar) {
+    nextState.calendar = { year: 1, month: 1, day: 1, dayProgressSeconds: 0 };
+  }
+  
+  const cal = { ...nextState.calendar };
+  cal.dayProgressSeconds += 1;
+  
+  let monthChanged = false;
+  let yearChanged = false;
+
+  if (cal.dayProgressSeconds >= secondsPerGameDay) {
+    cal.dayProgressSeconds = 0;
+    cal.day += 1;
+    if (cal.day > 30) {
+      cal.day = 1;
+      cal.month += 1;
+      monthChanged = true;
+      if (cal.month > 12) {
+        cal.month = 1;
+        cal.year += 1;
+        yearChanged = true;
+      }
+    }
+  }
+  nextState.calendar = cal;
+
+  // V0.8 Monthly systems execution
+  if (monthChanged) {
+    const monthlySalaries = nextState.buildings.length * 150 + nextState.companies.length * 400;
+    nextState.money = Math.max(0, nextState.money - monthlySalaries);
+    logs.push(`📅 Month ${cal.month} Financial Report: Charged ₹${monthlySalaries.toLocaleString()} in corporate overhead & employee salaries.`);
+
+    if (nextState.money > 0) {
+      const interest = Math.min(5000, Math.floor(nextState.money * 0.005));
+      if (interest > 0) {
+        nextState.money += interest;
+        logs.push(`💰 Bank Interest Yield: Received ₹${interest.toLocaleString()} interest on cash reserves.`);
+      }
+    }
+
+    if (nextState.money > 50000) {
+      const tax = Math.floor((nextState.money - 50000) * 0.04);
+      nextState.money = Math.max(0, nextState.money - tax);
+      logs.push(`🏛 Corporate Taxes: Paid ₹${tax.toLocaleString()} monthly state business tax.`);
+    }
+
+    logs.push(`📈 Market Report: Consumer demand indices adjusted for Month ${cal.month}.`);
+  }
+
+  // V0.8 Yearly systems execution
+  if (yearChanged) {
+    logs.push(`🌍 Calendar Year ${cal.year} Economic Summit: Corporate inflation is stable. Business operations reports generated.`);
+  }
 
   let revenueThisTick = 0;
   let expensesThisTick = 0;
@@ -75,12 +133,17 @@ export function runSimulationTick(state: GameState): TickResult {
 
   const completedProjects: typeof nextState.constructionQueue = [];
   nextState.constructionQueue = nextState.constructionQueue.map(project => {
-    const nextTime = project.timeRemaining - 1;
-    if (nextTime <= 0) {
+    const daysRemaining = project.daysRemaining !== undefined ? project.daysRemaining : (project.timeRemaining / secondsPerGameDay);
+    const nextDays = daysRemaining - (1 / secondsPerGameDay);
+    if (nextDays <= 0) {
       completedProjects.push(project);
     }
-    return { ...project, timeRemaining: nextTime };
-  }).filter(project => project.timeRemaining > 0);
+    return {
+      ...project,
+      daysRemaining: nextDays,
+      timeRemaining: Math.max(0, Math.ceil(nextDays * secondsPerGameDay))
+    };
+  }).filter(project => (project.daysRemaining !== undefined ? project.daysRemaining : project.timeRemaining) > 0);
 
   // Apply completed constructions/upgrades
   completedProjects.forEach(project => {
@@ -153,7 +216,7 @@ export function runSimulationTick(state: GameState): TickResult {
     const baseRate = config.baseProductionRate || 2;
     // V0.4 Extractor Department: Extraction Efficiency
     const deptEfficiency = b.departments?.efficiency || 0;
-    const prodRate = baseRate * levelMult * (1 + playerProdSpeedBonus + deptEfficiency * 0.15) * efficiency;
+    const prodRate = (baseRate * levelMult * (1 + playerProdSpeedBonus + deptEfficiency * 0.15) * efficiency) / secondsPerGameDay;
 
     const resId = config.producesResource;
     if (resId && RESOURCES_CONFIG[resId]) {
@@ -199,7 +262,7 @@ export function runSimulationTick(state: GameState): TickResult {
 
     // V0.4 Factory Department: Automation & Robotics (+15% processing speed per level)
     const deptAutomation = b.departments?.automation || 0;
-    const speedCoeff = factoryRate * levelMult * (1 + playerProdSpeedBonus + deptAutomation * 0.15);
+    const speedCoeff = (factoryRate * levelMult * (1 + playerProdSpeedBonus + deptAutomation * 0.15)) / secondsPerGameDay;
 
     // V0.4 Factory Department: Material Science (-5% material inputs per level, max -25%)
     const deptEfficiency = b.departments?.efficiency || 0;
@@ -370,7 +433,7 @@ export function runSimulationTick(state: GameState): TickResult {
     const levelMult = 1 + (b.level - 1) * 0.5;
     // V0.4 Retail Department: Retail Display (+20% sell speed per level)
     const deptDisplay = b.departments?.display || 0;
-    const sellRate = (config.baseCapacity || 10) * 0.1 * levelMult * progSpeedMult * (1 + deliverySpeedBonus + deptDisplay * 0.2);
+    const sellRate = ((config.baseCapacity || 10) * 0.1 * levelMult * progSpeedMult * (1 + deliverySpeedBonus + deptDisplay * 0.2)) / secondsPerGameDay;
 
     // Map shop type to resource sold
     let itemToSell = "";
@@ -498,17 +561,21 @@ export function runSimulationTick(state: GameState): TickResult {
 
     // If a crop cycle is selected, tick it forward!
     if (b.cropCycleSelected) {
-      b.cropCycleProgress = (b.cropCycleProgress || 0) + 1;
+      if ((b.cropCycleProgress || 0) > 10) {
+        const targetDays = b.cropCycleSelected === "food" ? 7 : 10;
+        b.cropCycleProgress = ((b.cropCycleProgress || 0) / 60) * targetDays;
+      }
+      b.cropCycleProgress = (b.cropCycleProgress || 0) + (1 / secondsPerGameDay);
       
-      const targetTime = 60; // 60 seconds cycle (snappy growth)
-      if (b.cropCycleProgress >= targetTime) {
+      const targetDays = b.cropCycleSelected === "food" ? 7 : 10;
+      if (b.cropCycleProgress >= targetDays) {
         b.cropCycleProgress = 0;
         
         // Output resource
         const resId = b.cropCycleSelected === "food" ? "fertile_land_crop" : "cotton";
-        const yieldQty = 124 * b.level; // 124 base crops produced, scales with level
+        const yieldQty = (b.cropCycleSelected === "food" ? 150 : 120) * b.level;
         
-        const localCap = 100 * b.level;
+        const localCap = 300 * b.level;
         const currentLocal = b.localResources[resId] || 0;
         const spaceLeft = Math.max(0, localCap - currentLocal);
         const added = Math.min(yieldQty, spaceLeft);
@@ -556,7 +623,7 @@ export function runSimulationTick(state: GameState): TickResult {
       const spaceForItems = Math.max(0, remainingVol / resConfig.volume);
 
       // We haul up to the truck capacity, the remaining shipment qty, and available warehouse volume
-      const amountToHaul = Math.min(remainingToDeliver, truckCapacity, spaceForItems);
+      const amountToHaul = Math.min(remainingToDeliver, truckCapacity / secondsPerGameDay, spaceForItems);
       if (amountToHaul > 0) {
         activeShipment.qtyDelivered += amountToHaul;
         nextState.resources[activeShipment.resource] = (nextState.resources[activeShipment.resource] || 0) + amountToHaul;
@@ -580,13 +647,25 @@ export function runSimulationTick(state: GameState): TickResult {
     // V0.5 Skip busy construction buildings
     if ((nextState.constructionQueue || []).some(cq => cq.buildingId === b.id)) return;
 
-    // If working: wears out slower (0.12% integrity decay per tick ~800s to 0)
-    // If stopped/idle: wears out faster (0.35% integrity decay per tick ~285s to 0)
-    let decayRate = workingBuildingIds.has(b.id) ? 0.12 : 0.35;
-
-    // V0.4 Department Decay Reductions (Safety / Operations)
+    let decayRate = 0.05;
     const config = BUILDING_CONFIGS[b.type];
+
     if (config) {
+      if (b.type === "logistics_hq" || b.type === "trade_center") {
+        // Deplete in 3 years = 1080 game days
+        decayRate = 100 / (1080 * secondsPerGameDay);
+      } else if (config.category === "infrastructure" || config.category === "hq" || b.type === "warehouse") {
+        // Deplete in 5 years = 1800 game days
+        decayRate = 100 / (1800 * secondsPerGameDay);
+      } else if (config.category === "extractor" || b.type === "agricultural_farm") {
+        // Deplete in 3 months = 90 game days
+        decayRate = 100 / (90 * secondsPerGameDay);
+      } else if (config.category === "factory" || config.category === "retail" || config.category === "service") {
+        // Deplete in 1 year = 360 game days
+        decayRate = 100 / (360 * secondsPerGameDay);
+      }
+
+      // V0.4 Department Decay Reductions (Safety / Operations)
       if (config.category === "extractor") {
         const deptMaint = b.departments?.maintenance || 0;
         decayRate = decayRate * (1 - deptMaint * 0.12);

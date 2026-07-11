@@ -257,3 +257,38 @@ Achievements UI Menu Tab:
 Integrated Statistics Engine:
 * Stats Schema: Tracks total play time, total money spent/earned, cumulative construction counts, company boardroom mergers, trucks owned, resources hauled, and specific items produced/sold/imported.
 * Real-time Tracking: Connected statistics counters inside the simulation tick loop and handlers.
+
+--------------------------------------------------------------------------------
+8. VERSION 0.9: CENTRALIZED TIME & CALENDAR ENGINE REDESIGN
+--------------------------------------------------------------------------------
+Configurable Time Presets System:
+* Centralized Presets Configuration: Created `src/simulation/timeConfig.ts` defining standard seconds per game day presets: Debug (10s), Fast Testing (30s), Development (60s), Beta Testing (120s), and Release (320s).
+* Game Calendar Progression: Ticks calendar days, months (30 days), and years (12 months) systematically based on selected preset speed, persisting current dates directly inside save states.
+* Top Bar Speed Adjustments: Renders current Calendar date HUD indices ("📅 Y1 M1 D1") and dynamic Speed Select dropdown fields in the main header panel. Scaling updates active builder queues instantly.
+
+Proportional Production & Logistics Balancing:
+* Equalized Daily Output: Divided extraction production rates, manufacturing processing speeds, and retail sales rates by the current speed divisor (`secondsPerGameDay`), securing identical balance rates across all presets.
+* Normalized Freight Logistics: Proportioned truck transport capacities per tick by the day preset divisor to secure uniform logistics deliveries across debug, development, and release speeds.
+
+Calendar-Based Project Ticking & Cycles:
+* Day-Scale Builder Counters: Re-engineered construction queues to count down remaining durations in game days. Progresses builder ticks proportionally.
+* Discrete Agriculture Harvest Cycles: Adjusted farms to operate on discrete harvest cycles (Food: 150 yield over 7 days; Cotton: 120 yield over 10 days). Ticks cycle progress in days, clearing active selections upon completion.
+* Grid Construction Visualizers: Renders active builder status badges ("BUILD", "UPGRADE") alongside real-time completion progress meters directly on map cells.
+
+Thematic Monthly & Yearly Accounting:
+* Monthly Corporate Statements: Automatically processes overhead salaries, tax deductions, bank interests, and demand reports on month changeovers.
+* Yearly Summits: Logs economic indicators and stable inflation updates when calendar years advance.
+
+--------------------------------------------------------------------------------
+9. VERSION 0.10: DYNAMIC UPGRADE ECONOMY REBALANCE
+--------------------------------------------------------------------------------
+Centralized Upgrade Configuration:
+* Centralized Economy Configurations: Created `src/buildings/upgradeEconomy.ts` defining base level-up multipliers, scaling formulas, and maximum level restrictions.
+* Proportional Scaling Formula: Outfitted upgrades to charge a percentage of original base requirements:
+  * Money: 35% for L2, 45% for L3, 55% for L4, and 65% for L5.
+  * Resources: 25% for L2, 30% for L3, 35% for L4, and 40% for L5.
+  * Extrapolates higher levels systematically (+10% cash multiplier and +5% resource multiplier per level beyond 5).
+* Proportional Duration Scaling: Sets upgrade duration to roughly 50% of base build duration scaled by current level factor.
+
+Unified Inspector Integration:
+* Property Inspector Upgrade Costs: Mapped `getBuildingUpgradeCost()` inside `page.tsx` handlers and Property Details modals, replacing hardcoded exponential multipliers (`Math.pow`). Displays and deducts correct resources.

@@ -38,6 +38,7 @@ import {
   VEHICLE_CONFIGS 
 } from "../buildings/buildingConfig";
 import { INFRASTRUCTURE_UPGRADE_COSTS } from "../buildings/economyConfig";
+import { getBuildingUpgradeCost } from "../buildings/upgradeEconomy";
 import { 
   BUSINESS_SKILLS, 
   UNIVERSAL_EXTRACTOR_SKILLS, 
@@ -46,6 +47,7 @@ import {
   UNIQUE_CORPORATE_SKILLS 
 } from "../buildings/departmentConfig";
 import { runSimulationTick, TickResult } from "../simulation/simulationEngine";
+import { getSecondsPerGameDay } from "../simulation/timeConfig";
 import { GameState, saveGame, loadGame, isSupabaseConfigured } from "../database/supabaseClient";
 import { ACHIEVEMENT_GROUPS, evaluateAchievement } from "../achievements/achievementConfig";
 
@@ -598,22 +600,27 @@ export default function BusinessEmpireGame() {
       if (hasResources && canPlaceBuilding(placingType, x, y)) {
         const generatedId = `build-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-        // Define builder project duration
-        const duration = (() => {
-          if (tutorialStep === 2 && placingType === "town_hall") return 300; // 5 mins for tutorialHQ
-          if (config.category === "extractor") return 12;
-          if (config.category === "factory") return 18;
-          if (config.category === "retail") return 8;
-          if (config.category === "service") return 14;
-          return 10;
+        // Define builder project duration in game days
+        const durationInDays = (() => {
+          if (tutorialStep === 2 && placingType === "town_hall") return 2;
+          if (config.category === "extractor") return 2;
+          if (config.category === "factory") return 7;
+          if (config.category === "retail") return 2;
+          if (placingType === "warehouse") return 3;
+          if (config.category === "service") return 3;
+          return 4;
         })();
+
+        const secondsPerGameDay = getSecondsPerGameDay(gameState);
 
         const newProject = {
           id: `proj-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           buildingId: generatedId,
           type: "construct" as const,
-          timeRemaining: duration,
-          totalTime: duration
+          daysRemaining: durationInDays,
+          totalDays: durationInDays,
+          timeRemaining: Math.ceil(durationInDays * secondsPerGameDay),
+          totalTime: Math.ceil(durationInDays * secondsPerGameDay)
         };
 
         setGameState(prev => {
@@ -834,21 +841,13 @@ export default function BusinessEmpireGame() {
       const infraCosts = INFRASTRUCTURE_UPGRADE_COSTS[b.type];
       const nextLevelInfraCost = infraCosts && infraCosts[b.level] ? infraCosts[b.level] : null;
 
-      const moneyCost = nextLevelInfraCost 
-        ? nextLevelInfraCost.money 
-        : Math.floor(config.baseCost * Math.pow(1.6, b.level));
-      const ironCost = nextLevelInfraCost 
-        ? nextLevelInfraCost.iron 
-        : Math.floor((config.baseIronCost || 0) * Math.pow(1.4, b.level));
-      const stoneCost = nextLevelInfraCost 
-        ? nextLevelInfraCost.stone 
-        : Math.floor((config.baseStoneCost || 0) * Math.pow(1.4, b.level));
-      const mortarCost = nextLevelInfraCost 
-        ? nextLevelInfraCost.mortar 
-        : Math.floor((config.baseMortarCost || 0) * Math.pow(1.4, b.level));
-      const woodCost = nextLevelInfraCost 
-        ? nextLevelInfraCost.wood 
-        : Math.floor((config.baseWoodCost || 0) * Math.pow(1.4, b.level));
+      const upgradeDetails = getBuildingUpgradeCost(b.type, b.level);
+
+      const moneyCost = nextLevelInfraCost ? nextLevelInfraCost.money : upgradeDetails.money;
+      const ironCost = nextLevelInfraCost ? nextLevelInfraCost.iron : upgradeDetails.iron;
+      const stoneCost = nextLevelInfraCost ? nextLevelInfraCost.stone : upgradeDetails.stone;
+      const mortarCost = nextLevelInfraCost ? nextLevelInfraCost.mortar : upgradeDetails.mortar;
+      const woodCost = nextLevelInfraCost ? nextLevelInfraCost.wood : upgradeDetails.wood;
 
       const hasResources = 
         prev.money >= moneyCost &&
@@ -864,21 +863,17 @@ export default function BusinessEmpireGame() {
         updatedResources.mortar = Math.max(0, (updatedResources.mortar || 0) - mortarCost);
         updatedResources.wood = Math.max(0, (updatedResources.wood || 0) - woodCost);
 
-        const baseDuration = (() => {
-          if (config.category === "extractor") return 12;
-          if (config.category === "factory") return 18;
-          if (config.category === "retail") return 8;
-          if (config.category === "service") return 14;
-          return 10;
-        })();
-        const duration = baseDuration * b.level;
+        const durationInDays = nextLevelInfraCost ? (b.level * 3) : upgradeDetails.durationInDays;
+        const secondsPerGameDay = getSecondsPerGameDay(prev);
 
         const newProject = {
           id: `proj-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           buildingId: id,
           type: "upgrade" as const,
-          timeRemaining: duration,
-          totalTime: duration
+          daysRemaining: durationInDays,
+          totalDays: durationInDays,
+          timeRemaining: Math.ceil(durationInDays * secondsPerGameDay),
+          totalTime: Math.ceil(durationInDays * secondsPerGameDay)
         };
 
         const currentStats = prev.stats || {
@@ -1937,7 +1932,44 @@ export default function BusinessEmpireGame() {
             <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-neutral-200 to-neutral-400 bg-clip-text text-transparent">
               Business Empire
             </h1>
-            <p className="text-xs text-neutral-400 font-mono">Prototype V0.3 • Data-Driven Simulation</p>
+            <p className="text-xs text-neutral-450 font-mono">Prototype V0.8 • Time & Tick System Redesign</p>
+            {/* Calendar & Time Control HUD */}
+            <div className="flex items-center gap-2 mt-1.5 text-[9px] font-mono bg-neutral-950 p-1 px-2 rounded-lg border border-neutral-850">
+              <span className="text-amber-500 font-bold uppercase tracking-wider">
+                📅 Y{(gameState.calendar?.year || 1)} M{(gameState.calendar?.month || 1)} D{(gameState.calendar?.day || 1)}
+              </span>
+              <span className="text-neutral-700">|</span>
+              <span className="text-neutral-400">Speed:</span>
+              <select
+                value={gameState.timePresetMode || "development"}
+                onChange={(e) => {
+                  const newMode = e.target.value as any;
+                  setGameState(prev => {
+                    const secondsPerGameDay = newMode === "debug" ? 10 : newMode === "fast_testing" ? 30 : newMode === "development" ? 60 : newMode === "beta_testing" ? 120 : 320;
+                    return {
+                      ...prev,
+                      timePresetMode: newMode,
+                      // Scale remaining construction durations immediately to match the new speed
+                      constructionQueue: (prev.constructionQueue || []).map(p => {
+                        const days = p.daysRemaining !== undefined ? p.daysRemaining : (p.timeRemaining / (prev.timePresetMode === "debug" ? 10 : prev.timePresetMode === "fast_testing" ? 30 : prev.timePresetMode === "development" ? 60 : prev.timePresetMode === "beta_testing" ? 120 : 320));
+                        return {
+                          ...p,
+                          timeRemaining: Math.ceil(days * secondsPerGameDay),
+                          totalTime: Math.ceil((p.totalDays || days) * secondsPerGameDay)
+                        };
+                      })
+                    };
+                  });
+                }}
+                className="bg-transparent text-neutral-300 border-none outline-none text-[9px] cursor-pointer font-bold focus:ring-0 p-0 ml-1"
+              >
+                <option value="debug" className="bg-neutral-900 text-neutral-300">Debug (10s/day)</option>
+                <option value="fast_testing" className="bg-neutral-900 text-neutral-300">Fast (30s/day)</option>
+                <option value="development" className="bg-neutral-900 text-neutral-300">Dev (1m/day)</option>
+                <option value="beta_testing" className="bg-neutral-900 text-neutral-300">Beta (2m/day)</option>
+                <option value="release" className="bg-neutral-900 text-neutral-300">Release (5m 20s/day)</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -2282,6 +2314,38 @@ export default function BusinessEmpireGame() {
                                   <div className="w-[50%] h-[1px] bg-yellow-500/55 border-t border-dashed border-yellow-400/40" />
                                 </div>
                               )}
+
+                              {isTopLeft && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none bg-black/40 z-20 rounded p-0.5 text-center">
+                                  {(() => {
+                                    const proj = gameState.constructionQueue?.find(q => q.buildingId === activeCell.id);
+                                    if (proj) {
+                                      const progress = proj.totalDays && proj.daysRemaining !== undefined
+                                        ? Math.max(0, Math.min(100, Math.round(((proj.totalDays - proj.daysRemaining) / proj.totalDays) * 100)))
+                                        : proj.totalTime
+                                          ? Math.max(0, Math.min(100, Math.round(((proj.totalTime - proj.timeRemaining) / proj.totalTime) * 100)))
+                                          : 0;
+                                      return (
+                                        <>
+                                          <span className="text-[8px] font-black text-amber-450 animate-pulse font-mono leading-none">{proj.type === "upgrade" ? "UPGRADE" : "BUILD"}</span>
+                                          <span className="text-[8px] font-mono text-white font-bold leading-none mt-0.5">{progress}%</span>
+                                          <div className="w-[80%] bg-neutral-950 h-1 rounded-full overflow-hidden mt-0.5">
+                                            <div className="bg-amber-500 h-full transition-all" style={{ width: `${progress}%` }} />
+                                          </div>
+                                        </>
+                                      );
+                                    }
+                                    return (
+                                      <>
+                                        <span className="text-[9px] font-black text-neutral-100 uppercase tracking-tight truncate leading-none w-full px-0.5">
+                                          {activeConfig?.name.split(" ")[0]}
+                                        </span>
+                                        <span className="text-[7px] font-mono text-neutral-350 leading-none mt-0.5">L{activeCell.level}</span>
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+                              )}
                             </div>
                           );
                         })}
@@ -2564,7 +2628,7 @@ export default function BusinessEmpireGame() {
                         <div className="bg-neutral-950 p-2.5 rounded-xl border border-neutral-800 space-y-2">
                           <div className="flex justify-between items-center text-[10px]">
                             <span className="font-bold text-neutral-455 uppercase tracking-wider">Local Silo Storage</span>
-                            <span className="font-mono text-neutral-350">{Object.values(bObj.localResources).reduce((s: number, v) => s + (v as number), 0)} / {((selectedInfo.config.baseCapacity || 100) * bObj.level)} units</span>
+                            <span className="font-mono text-neutral-350">{Math.round(Object.values(bObj.localResources).reduce((s: number, v) => s + (v as number), 0) as number)} / {((selectedInfo.config.baseCapacity || 100) * bObj.level)} units</span>
                           </div>
 
                           <div className="max-h-24 overflow-y-auto space-y-1 font-mono text-[9px] text-neutral-400">
@@ -2654,10 +2718,13 @@ export default function BusinessEmpireGame() {
                               </div>
                               <div className="flex justify-between items-center text-neutral-450">
                                 <span>Cycle Progress:</span>
-                                <span>{(bObj.cropCycleProgress || 0).toFixed(0)} / 60 seconds</span>
+                                <span>{(bObj.cropCycleProgress || 0).toFixed(1)} / {bObj.cropCycleSelected === "food" ? 7 : 10} Days</span>
                               </div>
                               <div className="w-full bg-neutral-950 rounded-full h-1 overflow-hidden">
-                                <div className="h-full bg-emerald-500 transition-all" style={{ width: `${Math.min(100, ((bObj.cropCycleProgress || 0) / 60) * 100)}%` }} />
+                                <div 
+                                  className="h-full bg-emerald-500 transition-all" 
+                                  style={{ width: `${Math.min(100, ((bObj.cropCycleProgress || 0) / (bObj.cropCycleSelected === "food" ? 7 : 10)) * 100)}%` }} 
+                                />
                               </div>
                             </div>
                           ) : (
@@ -2878,21 +2945,13 @@ export default function BusinessEmpireGame() {
                             const infraCosts = INFRASTRUCTURE_UPGRADE_COSTS[bObj.type];
                             const nextLevelInfraCost = infraCosts && infraCosts[bObj.level] ? infraCosts[bObj.level] : null;
 
-                            const upgradeMoneyCost = nextLevelInfraCost 
-                              ? nextLevelInfraCost.money 
-                              : Math.floor(selectedInfo.config.baseCost * Math.pow(1.6, bObj.level));
-                            const upgradeIronCost = nextLevelInfraCost 
-                              ? nextLevelInfraCost.iron 
-                              : Math.floor((selectedInfo.config.baseIronCost || 0) * Math.pow(1.4, bObj.level));
-                            const upgradestoneCost = nextLevelInfraCost 
-                              ? nextLevelInfraCost.stone 
-                              : Math.floor((selectedInfo.config.baseStoneCost || 0) * Math.pow(1.4, bObj.level));
-                            const upgradeMortarCost = nextLevelInfraCost 
-                              ? nextLevelInfraCost.mortar 
-                              : Math.floor((selectedInfo.config.baseMortarCost || 0) * Math.pow(1.4, bObj.level));
-                            const upgradeWoodCost = nextLevelInfraCost 
-                              ? nextLevelInfraCost.wood 
-                              : Math.floor((selectedInfo.config.baseWoodCost || 0) * Math.pow(1.4, bObj.level));
+                            const upgradeDetails = getBuildingUpgradeCost(bObj.type, bObj.level);
+
+                            const upgradeMoneyCost = nextLevelInfraCost ? nextLevelInfraCost.money : upgradeDetails.money;
+                            const upgradeIronCost = nextLevelInfraCost ? nextLevelInfraCost.iron : upgradeDetails.iron;
+                            const upgradestoneCost = nextLevelInfraCost ? nextLevelInfraCost.stone : upgradeDetails.stone;
+                            const upgradeMortarCost = nextLevelInfraCost ? nextLevelInfraCost.mortar : upgradeDetails.mortar;
+                            const upgradeWoodCost = nextLevelInfraCost ? nextLevelInfraCost.wood : upgradeDetails.wood;
 
                             const hasResourcesToUpgrade = 
                               gameState.money >= upgradeMoneyCost &&
