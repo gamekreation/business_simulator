@@ -45,11 +45,47 @@ export function runSimulationTick(state: GameState): TickResult {
   }
   nextState.calendar = cal;
 
+  // V0.11 Tick Salary Debt countdown if active
+  if ((nextState.salaryDebt || 0) > 0 && (nextState.salaryDebtDaysLeft || 0) > 0) {
+    nextState.salaryDebtDaysLeft = Math.max(0, (nextState.salaryDebtDaysLeft || 0) - (1 / secondsPerGameDay));
+    
+    if (nextState.salaryDebtDaysLeft <= 0) {
+      // 10 days is up! Overdue debt must be paid with 5% interest
+      const penaltyDebt = Math.round((nextState.salaryDebt || 0) * 1.05);
+      
+      if (nextState.money >= penaltyDebt) {
+        nextState.money -= penaltyDebt;
+        nextState.salaryDebt = 0;
+        nextState.salaryDebtDaysLeft = 0;
+        logs.push(`🏛 Accounts Payable Auto-Repaid: Repaid overdue salaries debt of ₹${penaltyDebt.toLocaleString()} (including 5% interest penalty) from cash reserves.`);
+      } else {
+        // Rollover remaining unpaid debt with an additional 5% penalty for another 10 days
+        const paid = nextState.money;
+        const unpaidAfterRepay = penaltyDebt - paid;
+        nextState.money = 0;
+        nextState.salaryDebt = unpaidAfterRepay;
+        nextState.salaryDebtDaysLeft = 10;
+        logs.push(`⚠️ Payroll Overdue Rollover: Cash reserves insufficient to clear salaries debt! Auto-deducted ₹${paid.toLocaleString()}. Unpaid debt of ₹${unpaidAfterRepay.toLocaleString()} rolled over for another 10 days with 5% interest penalty.`);
+      }
+    }
+  }
+
   // V0.8 Monthly systems execution
   if (monthChanged) {
-    const monthlySalaries = nextState.buildings.length * 150 + nextState.companies.length * 400;
-    nextState.money = Math.max(0, nextState.money - monthlySalaries);
-    logs.push(`📅 Month ${cal.month} Financial Report: Charged ₹${monthlySalaries.toLocaleString()} in corporate overhead & employee salaries.`);
+    const monthlySalaries = nextState.buildings.length * 50 + nextState.companies.length * 200;
+    
+    if (nextState.money >= monthlySalaries) {
+      nextState.money -= monthlySalaries;
+      logs.push(`📅 Month ${cal.month} Financial Report: Charged ₹${monthlySalaries.toLocaleString()} in corporate overhead & employee salaries.`);
+    } else {
+      // Deferred payment system!
+      const paid = nextState.money;
+      const unpaid = monthlySalaries - paid;
+      nextState.money = 0;
+      nextState.salaryDebt = (nextState.salaryDebt || 0) + unpaid;
+      nextState.salaryDebtDaysLeft = 10; // 10 days to pay
+      logs.push(`⚠️ Payroll Shortage: Cash reserves insufficient to cover monthly salaries of ₹${monthlySalaries.toLocaleString()}! Paid ₹${paid.toLocaleString()} (balance reset to ₹0). Unpaid ₹${unpaid.toLocaleString()} deferred to Accounts Payable for 10 days.`);
+    }
 
     if (nextState.money > 0) {
       const interest = Math.min(5000, Math.floor(nextState.money * 0.005));
@@ -262,7 +298,7 @@ export function runSimulationTick(state: GameState): TickResult {
 
     // V0.4 Factory Department: Automation & Robotics (+15% processing speed per level)
     const deptAutomation = b.departments?.automation || 0;
-    const speedCoeff = (factoryRate * levelMult * (1 + playerProdSpeedBonus + deptAutomation * 0.15)) / secondsPerGameDay;
+    const speedCoeff = (2.0 * factoryRate * levelMult * (1 + playerProdSpeedBonus + deptAutomation * 0.15)) / secondsPerGameDay;
 
     // V0.4 Factory Department: Material Science (-5% material inputs per level, max -25%)
     const deptEfficiency = b.departments?.efficiency || 0;
@@ -433,7 +469,7 @@ export function runSimulationTick(state: GameState): TickResult {
     const levelMult = 1 + (b.level - 1) * 0.5;
     // V0.4 Retail Department: Retail Display (+20% sell speed per level)
     const deptDisplay = b.departments?.display || 0;
-    const sellRate = ((config.baseCapacity || 10) * 0.1 * levelMult * progSpeedMult * (1 + deliverySpeedBonus + deptDisplay * 0.2)) / secondsPerGameDay;
+    const sellRate = ((config.baseCapacity || 10) * 0.2 * levelMult * progSpeedMult * (1 + deliverySpeedBonus + deptDisplay * 0.2)) / secondsPerGameDay;
 
     // Map shop type to resource sold
     let itemToSell = "";

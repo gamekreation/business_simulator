@@ -104,6 +104,8 @@ export interface GameState {
     dayProgressSeconds: number;
   };
   timePresetMode?: "debug" | "fast_testing" | "development" | "beta_testing" | "release";
+  salaryDebt?: number;
+  salaryDebtDaysLeft?: number;
 }
 
 export interface PlayerStats {
@@ -184,6 +186,8 @@ function sanitizeGameState(state: any): GameState {
   if (state.gems === undefined) state.gems = 0;
   if (!Array.isArray(state.unlockedAchievements)) state.unlockedAchievements = [];
   if (!Array.isArray(state.claimedAchievements)) state.claimedAchievements = [];
+  if (state.salaryDebt === undefined) state.salaryDebt = 0;
+  if (state.salaryDebtDaysLeft === undefined) state.salaryDebtDaysLeft = 0;
 
   // Stats default init
   if (!state.stats) {

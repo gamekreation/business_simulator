@@ -292,3 +292,14 @@ Centralized Upgrade Configuration:
 
 Unified Inspector Integration:
 * Property Inspector Upgrade Costs: Mapped `getBuildingUpgradeCost()` inside `page.tsx` handlers and Property Details modals, replacing hardcoded exponential multipliers (`Math.pow`). Displays and deducts correct resources.
+
+--------------------------------------------------------------------------------
+10. VERSION 0.11: DEFERRED PAYROLL & ACCOUNTS PAYABLE DEBT SYSTEM
+--------------------------------------------------------------------------------
+Payroll Deficit Protection:
+* Auto-Debt Deferral: Re-engineered monthly salary checks inside `simulationEngine.ts` to protect cash balances. When monthly salaries exceed cash reserves, all current money is paid (resetting cash to ₹0), and the remaining balance is deferred to Accounts Payable (`salaryDebt`).
+* 10-Day Overdue Repayment Timer: Gives players a 10 game day grace period to raise funds. Decrements the remaining countdown (`salaryDebtDaysLeft`) proportionally per tick.
+
+Repayment Actions & Overdue Penalties:
+* Overdue Auto-Pay & Interest: After 10 game days, if cash reserves are sufficient, the debt is auto-deducted with a 5% interest penalty. If cash remains insufficient, the penalty rolls over for another 10 days at 5% interest.
+* Manual HUD Settle Action: Renders an active warning badge in the header ("🚨 Payables: ₹X (Yd)") with an instant **"Repay"** button. Settle your debt early at any time as soon as you have enough cash to avoid the 5% penalty.

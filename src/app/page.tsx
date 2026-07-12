@@ -1961,7 +1961,7 @@ export default function BusinessEmpireGame() {
                     };
                   });
                 }}
-                className="bg-transparent text-neutral-300 border-none outline-none text-[9px] cursor-pointer font-bold focus:ring-0 p-0 ml-1"
+                className="bg-transparent text-neutral-300 border-none outline-none text-[9px] cursor-pointer font-bold focus:ring-0 p-0 ml-1 mr-1"
               >
                 <option value="debug" className="bg-neutral-900 text-neutral-300">Debug (10s/day)</option>
                 <option value="fast_testing" className="bg-neutral-900 text-neutral-300">Fast (30s/day)</option>
@@ -1969,6 +1969,10 @@ export default function BusinessEmpireGame() {
                 <option value="beta_testing" className="bg-neutral-900 text-neutral-300">Beta (2m/day)</option>
                 <option value="release" className="bg-neutral-900 text-neutral-300">Release (5m 20s/day)</option>
               </select>
+              <span className="text-neutral-700">|</span>
+              <span className="text-rose-400 font-semibold uppercase tracking-wide text-[8px]" title="Deducted at the end of every game month">
+                ⚠️ Monthly: ₹50/bld salary • 4% Tax above ₹50k
+              </span>
             </div>
           </div>
         </div>
@@ -1980,6 +1984,36 @@ export default function BusinessEmpireGame() {
               {gameState.money.toLocaleString(undefined, { maximumFractionDigits: 1 })}
             </span>
           </div>
+
+          {gameState.salaryDebt !== undefined && gameState.salaryDebt > 0 && (
+            <>
+              <div className="h-6 w-[1px] bg-neutral-800" />
+              <div className="flex items-center gap-1.5" title="Accounts Payable (Deferred payroll salaries). Repay manually or auto-deducted after 10 game days with a 5% interest penalty.">
+                <span className="text-[9px] font-black uppercase tracking-wider bg-rose-950/80 border border-rose-900/60 p-1 px-2 rounded-lg text-rose-400 animate-pulse">
+                  🚨 Payables: ₹{Math.round(gameState.salaryDebt)} ({gameState.salaryDebtDaysLeft !== undefined ? gameState.salaryDebtDaysLeft.toFixed(1) : 10}d)
+                </span>
+                <button
+                  onClick={() => {
+                    const debtVal = gameState.salaryDebt || 0;
+                    if (gameState.money >= debtVal) {
+                      setGameState(prev => ({
+                        ...prev,
+                        money: prev.money - debtVal,
+                        salaryDebt: 0,
+                        salaryDebtDaysLeft: 0
+                      }));
+                    } else {
+                      alert("Insufficient funds to repay payables debt!");
+                    }
+                  }}
+                  disabled={gameState.money < (gameState.salaryDebt || 0)}
+                  className="px-2 py-0.5 bg-rose-700 hover:bg-rose-600 disabled:opacity-40 text-white rounded text-[8px] font-extrabold uppercase transition"
+                >
+                  Repay
+                </button>
+              </div>
+            </>
+          )}
 
           <div className="h-6 w-[1px] bg-neutral-800" />
 
