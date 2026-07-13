@@ -23,4 +23,48 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Mobile Landscape Layout Overrides */
+@media (max-height: 480px) and (orientation: landscape) {
+  header {
+    padding: 6px 12px !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+  }
+  
+  header h1 {
+    font-size: 14px !important;
+  }
+  
+  header p {
+    display: none !important;
+  }
+
+  main {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    padding: 8px !important;
+    max-width: 100% !important;
+  }
+
+  /* Two-column layout: Map on the left, warehouse/builder info on the right */
+  main > div:first-child {
+    width: 280px !important;
+    flex-shrink: 0 !important;
+    gap: 8px !important;
+  }
+
+  main > div:last-child {
+    flex: 1 !important;
+    width: auto !important;
+  }
+
+  /* Shrink grid visualizer card styles */
+  .grid-visualizer-container {
+    padding: 6px !important;
+  }
 }

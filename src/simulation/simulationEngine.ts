@@ -14,6 +14,14 @@ export interface TickResult {
 export function runSimulationTick(state: GameState): TickResult {
   // Deep clone state
   const nextState: GameState = JSON.parse(JSON.stringify(state));
+  
+  // Synchronize UI-driven resource updates from root back into active region
+  const startActiveReg = nextState.activeRegionId || "agriculture";
+  if (!nextState.regionalResources) {
+    nextState.regionalResources = {};
+  }
+  nextState.regionalResources[startActiveReg] = { ...(nextState.resources || {}) };
+
   const logs: string[] = [];
   const workingBuildingIds = new Set<string>();
 
@@ -113,31 +121,38 @@ export function runSimulationTick(state: GameState): TickResult {
   let revenueThisTick = 0;
   let expensesThisTick = 0;
 
-  // Initialize missing resource fields to 0 if not present
-  Object.keys(RESOURCES_CONFIG).forEach(resId => {
-    if (nextState.resources[resId] === undefined) {
-      nextState.resources[resId] = 0;
+  // Helper: Retrieve resources for a specific region
+  const getRegionResources = (regionId: string): Record<string, number> => {
+    if (!nextState.regionalResources) nextState.regionalResources = {};
+    if (!nextState.regionalResources[regionId]) {
+      nextState.regionalResources[regionId] = {};
     }
-  });
+    const regRes = nextState.regionalResources[regionId];
+    Object.keys(RESOURCES_CONFIG).forEach(resId => {
+      if (regRes[resId] === undefined) {
+        regRes[resId] = 0;
+      }
+    });
+    return regRes;
+  };
 
-  // 1. Calculate Warehouse Volume Storage limits
-  // Base warehouse capacity if no warehouses is 1600 volume.
-  // Each warehouse adds its baseCapacity * level multiplier
-  const warehouses = nextState.buildings.filter(b => b.type === "warehouse");
-  const baseWarehouseCap = 1600;
-  const warehouseBonus = warehouses.reduce((sum, b) => {
-    const levelMult = 1 + (b.level - 1) * 0.6; // +60% capacity per upgrade level
-    const config = BUILDING_CONFIGS.warehouse;
-    return sum + (config.baseCapacity || 1000) * levelMult;
-  }, 0);
-  // V0.4 Factory Silo department bonus (+50 VU max cap per point)
-  const factorySiloBonus = nextState.buildings
-    .filter(b => BUILDING_CONFIGS[b.type]?.category === "factory")
-    .reduce((sum, b) => {
-      const deptSilo = b.departments?.silo || 0;
-      return sum + (deptSilo * 50);
+  // Helper: Calculate warehouse storage capacity for a specific region
+  const getRegionMaxStorage = (regionId: string): number => {
+    const warehouses = nextState.buildings.filter(b => b.type === "warehouse" && (b.regionId || "agriculture") === regionId);
+    const baseWarehouseCap = 1600;
+    const warehouseBonus = warehouses.reduce((sum, b) => {
+      const levelMult = 1 + (b.level - 1) * 0.6;
+      const config = BUILDING_CONFIGS.warehouse;
+      return sum + (config.baseCapacity || 1000) * levelMult;
     }, 0);
-  const maxStorageVolume = baseWarehouseCap + warehouseBonus + factorySiloBonus;
+    const factorySiloBonus = nextState.buildings
+      .filter(b => BUILDING_CONFIGS[b.type]?.category === "factory" && (b.regionId || "agriculture") === regionId)
+      .reduce((sum, b) => {
+        const deptSilo = b.departments?.silo || 0;
+        return sum + (deptSilo * 50);
+      }, 0);
+    return baseWarehouseCap + warehouseBonus + factorySiloBonus;
+  };
 
   // Helper: Calculate current storage volume used
   const getUsedVolume = (resMap: Record<string, number>): number => {
@@ -148,7 +163,9 @@ export function runSimulationTick(state: GameState): TickResult {
     }, 0);
   };
 
-  const currentUsedVolume = getUsedVolume(nextState.resources);
+  // Ensure active region is initialized
+  const activeReg = nextState.activeRegionId || "agriculture";
+  getRegionResources(activeReg);
 
   // 2. Global Player Modifiers
   const playerProdSkill = nextState.skills.production || 0;
@@ -310,6 +327,10 @@ export function runSimulationTick(state: GameState): TickResult {
     // Verify integrity (0% stops production)
     if (b.integrity !== undefined && b.integrity <= 0) return;
 
+    const bRegion = b.regionId || "agriculture";
+    const regionalRes = getRegionResources(bRegion);
+    const maxStorageVolume = getRegionMaxStorage(bRegion);
+
     // Progression/Level modifiers
     const levelMult = 1 + (b.level - 1) * 0.4;
     // Factory size speed/consumption scaling
@@ -339,7 +360,7 @@ export function runSimulationTick(state: GameState): TickResult {
     if (b.productionQuota !== undefined && b.productionQuota > 0) {
       const primaryOutput = recipe.outputs[0];
       if (primaryOutput) {
-        const currentStock = nextState.resources[primaryOutput.resource] || 0;
+        const currentStock = regionalRes[primaryOutput.resource] || 0;
         if (currentStock >= b.productionQuota) {
           // Target quota reached, factory stops!
           return;
@@ -354,7 +375,7 @@ export function runSimulationTick(state: GameState): TickResult {
     recipe.inputs.forEach(input => {
       // scaled by inputMultiplier
       const needed = input.amount * inputMultiplier * speedCoeff;
-      const available = nextState.resources[input.resource] || 0;
+      const available = regionalRes[input.resource] || 0;
       if (available < needed) {
         // scale down production to match available inputs
         const scale = available / (input.amount * inputMultiplier * speedCoeff);
@@ -376,7 +397,7 @@ export function runSimulationTick(state: GameState): TickResult {
         const totalAddedQty = primaryOutput.amount * inputScaleLimit;
         
         // Calculate remaining volume space in warehouse
-        const currentVol = getUsedVolume(nextState.resources);
+        const currentVol = getUsedVolume(regionalRes);
         // Exclude inputs we are about to consume to free up space (scaled by inputMultiplier)
         const inputsFreedVol = recipe.inputs.reduce((sum, input) => {
           const resConf = RESOURCES_CONFIG[input.resource];
@@ -391,11 +412,11 @@ export function runSimulationTick(state: GameState): TickResult {
           // Consume inputs (scaled by inputMultiplier)
           recipe.inputs.forEach(input => {
             const consumed = input.amount * inputMultiplier * (actualQty / primaryOutput.amount);
-            nextState.resources[input.resource] = Math.max(0, (nextState.resources[input.resource] || 0) - consumed);
+            regionalRes[input.resource] = Math.max(0, (regionalRes[input.resource] || 0) - consumed);
           });
 
           // Produce outputs
-          nextState.resources[primaryOutput.resource] = (nextState.resources[primaryOutput.resource] || 0) + actualQty;
+          regionalRes[primaryOutput.resource] = (regionalRes[primaryOutput.resource] || 0) + actualQty;
           logs.push(`${config.name} crafted ${actualQty.toFixed(1)} ${outputConfig.name} via ${recipe.name}.`);
           workingBuildingIds.add(b.id);
           if (nextState.stats) {
@@ -429,6 +450,9 @@ export function runSimulationTick(state: GameState): TickResult {
     // Verify integrity (0% stops service billing)
     if (b.integrity !== undefined && b.integrity <= 0) return;
 
+    const bRegion = b.regionId || "agriculture";
+    const regionalRes = getRegionResources(bRegion);
+
     let baseServiceRevenue = 0;
     let requiredInputResource = "";
     if (b.type === "interior_design_studio") {
@@ -447,13 +471,13 @@ export function runSimulationTick(state: GameState): TickResult {
 
     // Verify input resources if required
     if (requiredInputResource) {
-      const inputQty = nextState.resources[requiredInputResource] || 0;
+      const inputQty = regionalRes[requiredInputResource] || 0;
       if (inputQty < 1) {
         // Log lack of resources occasionally or silently skip
         return;
       }
       // Consume 1 unit
-      nextState.resources[requiredInputResource] = Math.max(0, inputQty - 1);
+      regionalRes[requiredInputResource] = Math.max(0, inputQty - 1);
     }
 
     const levelMult = 1 + (b.level - 1) * 0.5;
@@ -496,6 +520,9 @@ export function runSimulationTick(state: GameState): TickResult {
     // Verify integrity (0% stops sales operations)
     if (b.integrity !== undefined && b.integrity <= 0) return;
 
+    const bRegion = b.regionId || "agriculture";
+    const regionalRes = getRegionResources(bRegion);
+
     // Progression Multipliers: 1 = Shop (1x), 2 = Showroom (2.5x speed, 1.6x price), 3 = Dealership (6x speed, 2.5x price)
     const progLevel = b.progressionLevel || 1;
     const progSpeedMult = progLevel === 3 ? 6.0 : progLevel === 2 ? 2.5 : 1.0;
@@ -516,7 +543,7 @@ export function runSimulationTick(state: GameState): TickResult {
     else if (b.type === "gas_station") itemToSell = "fuel";
     else if (b.type === "electronics_shop") itemToSell = "electronics";
 
-    const availableQty = nextState.resources[itemToSell] || 0;
+    const availableQty = regionalRes[itemToSell] || 0;
     if (availableQty > 0 && itemToSell) {
       const resConfig = RESOURCES_CONFIG[itemToSell];
       if (resConfig) {
@@ -526,7 +553,7 @@ export function runSimulationTick(state: GameState): TickResult {
         const finalPrice = resConfig.basePrice * progPriceMult * (1 + playerMktPriceBonus + deptBranding * 0.10) * tourismMultiplier;
         const rev = toSell * finalPrice;
 
-        nextState.resources[itemToSell] -= toSell;
+        regionalRes[itemToSell] -= toSell;
         revenueThisTick += rev;
         logs.push(`${config.name} sold ${toSell.toFixed(1)} ${resConfig.name} for $${rev.toFixed(1)}.`);
         if (toSell > 0) {
@@ -552,6 +579,9 @@ export function runSimulationTick(state: GameState): TickResult {
       }
       return;
     }
+
+    const bRegion = company.regionId || "agriculture";
+    const regionalRes = getRegionResources(bRegion);
 
     // HQ Maintenance
     const levelMult = 1 + (company.level - 1) * 0.8;
@@ -600,15 +630,15 @@ export function runSimulationTick(state: GameState): TickResult {
 
     let efficiency = 0.6; // 60% baseline idle efficiency
     if (resourceRequired) {
-      const available = nextState.resources[resourceRequired] || 0;
+      const available = regionalRes[resourceRequired] || 0;
       if (available >= requiredQty) {
-        nextState.resources[resourceRequired] -= requiredQty;
+        regionalRes[resourceRequired] -= requiredQty;
         efficiency = 1.0;
         logs.push(`${config.name} consumed ${requiredQty} ${resourceRequired} for 100% capacity.`);
       } else if (available > 0) {
         const fraction = available / requiredQty;
         efficiency = 0.6 + fraction * 0.4;
-        nextState.resources[resourceRequired] = 0;
+        regionalRes[resourceRequired] = 0;
         logs.push(`${config.name} low on inputs. Running at ${Math.round(efficiency * 100)}% efficiency.`);
       } else {
         logs.push(`${config.name} lacks ${resourceRequired}. Operating at 60% idle capacity.`);
@@ -704,8 +734,14 @@ export function runSimulationTick(state: GameState): TickResult {
       // Calculate how much is left to carry for this shipment
       const remainingToDeliver = activeShipment.qty - activeShipment.qtyDelivered;
 
+      // Access resources using the regional resource maps
+      const originBuilding = nextState.buildings.find(b => b.id === activeShipment.buildingId);
+      const bRegion = originBuilding?.regionId || activeShipment.regionId || "agriculture";
+      const regionalRes = getRegionResources(bRegion);
+      const maxStorageVolume = getRegionMaxStorage(bRegion);
+
       // Verify remaining volume in global warehouse
-      const currentVol = getUsedVolume(nextState.resources);
+      const currentVol = getUsedVolume(regionalRes);
       const remainingVol = maxStorageVolume - currentVol;
       const spaceForItems = Math.max(0, remainingVol / resConfig.volume);
 
@@ -713,7 +749,7 @@ export function runSimulationTick(state: GameState): TickResult {
       const amountToHaul = Math.min(remainingToDeliver, truckCapacity / secondsPerGameDay, spaceForItems);
       if (amountToHaul > 0) {
         activeShipment.qtyDelivered += amountToHaul;
-        nextState.resources[activeShipment.resource] = (nextState.resources[activeShipment.resource] || 0) + amountToHaul;
+        regionalRes[activeShipment.resource] = (regionalRes[activeShipment.resource] || 0) + amountToHaul;
         if (nextState.stats) {
           nextState.stats.totalMovedResources = (nextState.stats.totalMovedResources || 0) + amountToHaul;
         }
@@ -777,15 +813,19 @@ export function runSimulationTick(state: GameState): TickResult {
         if (recipe) {
           const primaryOutput = recipe.outputs[0];
           if (primaryOutput) {
+            const bRegion = b.regionId || "agriculture";
+            const regionalRes = getRegionResources(bRegion);
+            const maxStorageVolume = getRegionMaxStorage(bRegion);
+
             // Check target quota limit
             if (b.productionQuota !== undefined && b.productionQuota > 0) {
-              const currentStock = nextState.resources[primaryOutput.resource] || 0;
+              const currentStock = regionalRes[primaryOutput.resource] || 0;
               if (currentStock >= b.productionQuota) {
                 decayRate = 0;
               }
             }
             // Check global warehouse capacity limits
-            const currentVol = getUsedVolume(nextState.resources);
+            const currentVol = getUsedVolume(regionalRes);
             const resConfig = RESOURCES_CONFIG[primaryOutput.resource];
             if (resConfig) {
               const spaceLeft = maxStorageVolume - currentVol;
@@ -819,7 +859,9 @@ export function runSimulationTick(state: GameState): TickResult {
     completed.forEach(imp => {
       const resConfig = RESOURCES_CONFIG[imp.resource];
       if (resConfig) {
-        nextState.resources[imp.resource] = (nextState.resources[imp.resource] || 0) + imp.qty;
+        const bRegion = imp.regionId || tradeCenter?.regionId || "agriculture";
+        const regionalRes = getRegionResources(bRegion);
+        regionalRes[imp.resource] = (regionalRes[imp.resource] || 0) + imp.qty;
         logs.push(`Import Order Completed: Received ${imp.qty}x ${resConfig.name} in global warehouse.`);
         if (nextState.stats) {
           if (!nextState.stats.resourcesImported) nextState.stats.resourcesImported = {};
@@ -870,6 +912,9 @@ export function runSimulationTick(state: GameState): TickResult {
   if (revenueThisTick > 0) {
     nextState.stats.totalMoneyEarned = (nextState.stats.totalMoneyEarned || 0) + revenueThisTick;
   }
+
+  const activeRegCopy = nextState.activeRegionId || "agriculture";
+  nextState.resources = { ...getRegionResources(activeRegCopy) };
 
   return {
     nextState,

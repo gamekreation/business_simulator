@@ -55,68 +55,177 @@ import { ACHIEVEMENT_GROUPS, evaluateAchievement } from "../achievements/achieve
 const LOCAL_SAVE_ID = "proto_player_v0_2";
 
 // Helper to generate dynamic starting region layouts depending on chosen business with procedural randomization
-const generateRegionDepositNodes = (businessType: string) => {
-  const nodes: { x: number; y: number; type: "iron_deposit" | "coal_deposit" | "oil_field" | "limestone_deposit" | "fertile_land" | "forest" | "stone_deposit" | "copper_deposit" | "silicon_deposit" | "uranium_deposit" }[] = [];
+const REGION_CONFIGS: Record<string, {
+  id: string;
+  name: string;
+  gridSize: number;
+  buffDescription: string;
+  specialization: string;
+  primaryBusinesses: string[];
+  depositTypes: string[];
+  description: string;
+  unlockLevel: number; // Administrative HQ level required to unlock
+}> = {
+  agriculture: {
+    id: "agriculture",
+    name: "Agriculture Region",
+    gridSize: 14,
+    buffDescription: "+30% crop production rate, faster farms.",
+    specialization: "farming",
+    primaryBusinesses: ["food_shop", "grocery_shop"],
+    depositTypes: ["fertile_land", "forest", "stone_deposit"],
+    description: "Highly fertile plains suitable for vast farming networks.",
+    unlockLevel: 1
+  },
+  forestry: {
+    id: "forestry",
+    name: "Forestry Region",
+    gridSize: 15,
+    buffDescription: "+30% wood production rate, +20% furniture value.",
+    specialization: "lumber",
+    primaryBusinesses: ["furniture_shop"],
+    depositTypes: ["forest", "stone_deposit", "iron_deposit"],
+    description: "Dense, ancient woodland rich in premium lumber.",
+    unlockLevel: 3
+  },
+  industrial: {
+    id: "industrial",
+    name: "Industrial Region",
+    gridSize: 20,
+    buffDescription: "+30% manufacturing rate, factory efficiency.",
+    specialization: "manufacturing",
+    primaryBusinesses: ["clothing_shop", "gas_station"],
+    depositTypes: ["iron_deposit", "stone_deposit", "coal_deposit", "oil_field", "limestone_deposit"],
+    description: "Spacious mineral plains suitable for heavy industrial complexes.",
+    unlockLevel: 4
+  },
+  technology: {
+    id: "technology",
+    name: "Technology Region",
+    gridSize: 16,
+    buffDescription: "+30% electronics assembly rate, high-tech manufacturing.",
+    specialization: "high_tech",
+    primaryBusinesses: ["electronics_shop"],
+    depositTypes: ["copper_deposit", "silicon_deposit", "stone_deposit"],
+    description: "Rich rare-earth deposit zones perfect for advanced assembly labs.",
+    unlockLevel: 7
+  },
+  healthcare: {
+    id: "healthcare",
+    name: "Healthcare Region",
+    gridSize: 15,
+    buffDescription: "+30% pharmaceutical synthesis rate.",
+    specialization: "medical",
+    primaryBusinesses: ["medical_shop"],
+    depositTypes: ["stone_deposit", "forest", "oil_field"],
+    description: "Clean research fields tailored for chemical and medicine production.",
+    unlockLevel: 8
+  },
+  commercial: {
+    id: "commercial",
+    name: "Commercial Region",
+    gridSize: 16,
+    buffDescription: "+20% customer sales speed, +20% service revenue.",
+    specialization: "retail",
+    primaryBusinesses: ["clothing_shop", "food_shop", "furniture_shop", "grocery_shop", "medical_shop", "electronics_shop", "gas_station", "hotel"],
+    depositTypes: ["stone_deposit", "forest"],
+    description: "Densely populated trade zone designed for shopping malls and resorts.",
+    unlockLevel: 10
+  }
+};
+
+const generateRegionDepositNodes = (regionId: string) => {
+  const nodes: { x: number; y: number; type: "iron_deposit" | "coal_deposit" | "oil_field" | "limestone_deposit" | "fertile_land" | "forest" | "stone_deposit" | "copper_deposit" | "silicon_deposit" | "uranium_deposit"; regionId?: string }[] = [];
   
-  let forestCount = 0;
-  let stoneCount = 0;
-  let ironCount = 0;
-  let landCount = 0;
+  const isStartingRegion = regionId.includes("shop") || ["food", "clothing", "grocery", "furniture", "agriculture"].includes(regionId);
+  
+  let actId = "agriculture";
+  let gSize = 14;
 
-  // Clean faction names if needed (e.g. food_shop -> food)
-  const cleanType = businessType.replace("_shop", "");
-
-  if (cleanType === "furniture") {
-    forestCount = 18;
-    stoneCount = 8;
-    ironCount = 1;
-    landCount = 2;
-  } else if (cleanType === "food") {
-    forestCount = 4;
-    stoneCount = 2;
-    ironCount = 1;
-    landCount = 22;
-  } else if (cleanType === "clothing") {
-    forestCount = 6;
-    stoneCount = 5;
-    ironCount = 1;
-    landCount = 15;
-  } else if (cleanType === "grocery") {
-    forestCount = 8;
-    stoneCount = 6;
-    ironCount = 1;
-    landCount = 10;
-  } else {
-    // Default fallback
-    forestCount = 8;
-    stoneCount = 6;
-    ironCount = 2;
-    landCount = 8;
+  if (!isStartingRegion) {
+    const cleanId = regionId;
+    actId = REGION_CONFIGS[cleanId] ? cleanId : "agriculture";
+    gSize = REGION_CONFIGS[actId].gridSize;
   }
 
-  // Help function to place cluster at a randomized center coordinate
+  let regionDist: Array<{ type: any; count: number }> = [];
+
+  if (isStartingRegion) {
+    if (regionId.includes("furniture") || regionId === "furniture") {
+      regionDist = [
+        { type: "forest", count: 20 },
+        { type: "fertile_land", count: 8 },
+        { type: "stone_deposit", count: 5 },
+        { type: "iron_deposit", count: 2 }
+      ];
+    } else if (regionId.includes("clothing") || regionId === "clothing") {
+      regionDist = [
+        { type: "fertile_land", count: 18 },
+        { type: "forest", count: 10 },
+        { type: "stone_deposit", count: 5 },
+        { type: "iron_deposit", count: 2 }
+      ];
+    } else {
+      regionDist = [
+        { type: "fertile_land", count: 22 },
+        { type: "forest", count: 8 },
+        { type: "stone_deposit", count: 4 },
+        { type: "iron_deposit", count: 2 }
+      ];
+    }
+  } else {
+    const distributions: Record<string, Array<{ type: any; count: number }>> = {
+      forestry: [
+        { type: "forest", count: 20 },
+        { type: "stone_deposit", count: 6 },
+        { type: "iron_deposit", count: 1 }
+      ],
+      industrial: [
+        { type: "iron_deposit", count: 8 },
+        { type: "stone_deposit", count: 8 },
+        { type: "coal_deposit", count: 6 },
+        { type: "oil_field", count: 5 },
+        { type: "limestone_deposit", count: 4 },
+        { type: "uranium_deposit", count: 2 }
+      ],
+      technology: [
+        { type: "copper_deposit", count: 10 },
+        { type: "silicon_deposit", count: 8 },
+        { type: "stone_deposit", count: 6 }
+      ],
+      healthcare: [
+        { type: "forest", count: 10 },
+        { type: "stone_deposit", count: 8 },
+        { type: "oil_field", count: 4 }
+      ],
+      commercial: [
+        { type: "forest", count: 6 },
+        { type: "stone_deposit", count: 4 }
+      ]
+    };
+    regionDist = distributions[actId] || distributions.forestry;
+  }
+
   const placeRandomCluster = (type: any, count: number) => {
     let placed = false;
     let attempts = 0;
     while (!placed && attempts < 100) {
-      // Keep centers inside region boundaries with safety padding
-      const cx = Math.floor(Math.random() * 11) + 2; 
-      const cy = Math.floor(Math.random() * 11) + 2; 
+      const cx = Math.floor(Math.random() * (gSize - 4)) + 2; 
+      const cy = Math.floor(Math.random() * (gSize - 4)) + 2; 
       
       const overlap = nodes.some(n => Math.abs(n.x - cx) <= 1 && Math.abs(n.y - cy) <= 1);
       if (!overlap || attempts > 50) {
         const size = Math.ceil(Math.sqrt(count));
         for (let i = 0; i < count; i++) {
-          // Add small jitter random offset to individual cluster elements
           const jitterX = Math.random() > 0.85 ? (Math.random() > 0.5 ? 1 : -1) : 0;
           const jitterY = Math.random() > 0.85 ? (Math.random() > 0.5 ? 1 : -1) : 0;
           
           const x = cx + (i % size) - Math.floor(size / 2) + jitterX;
           const y = cy + Math.floor(i / size) - Math.floor(size / 2) + jitterY;
           
-          if (x >= 0 && x < 15 && y >= 0 && y < 15) {
+          if (x >= 0 && x < gSize && y >= 0 && y < gSize) {
             if (!nodes.some(n => n.x === x && n.y === y)) {
-              nodes.push({ x, y, type });
+              nodes.push({ x, y, type, regionId: actId });
             }
           }
         }
@@ -126,15 +235,14 @@ const generateRegionDepositNodes = (businessType: string) => {
     }
   };
 
-  if (forestCount > 0) placeRandomCluster("forest", forestCount);
-  if (stoneCount > 0) placeRandomCluster("stone_deposit", stoneCount);
-  if (ironCount > 0) placeRandomCluster("iron_deposit", ironCount);
-  if (landCount > 0) placeRandomCluster("fertile_land", landCount);
+  regionDist.forEach(dist => {
+    placeRandomCluster(dist.type, dist.count);
+  });
 
   return nodes;
 };
 
-const DEFAULT_DEPOSIT_NODES = generateRegionDepositNodes("default");
+const DEFAULT_DEPOSIT_NODES = generateRegionDepositNodes("agriculture");
 
 export default function BusinessEmpireGame() {
   // --- Game State ---
@@ -165,6 +273,7 @@ export default function BusinessEmpireGame() {
   // --- UI State ---
   const [activeTab, setActiveTab] = useState<"map" | "logistics" | "mergers" | "skills" | "dashboard" | "achievements">("map");
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
+  const [isRegionSwitcherOpen, setIsRegionSwitcherOpen] = useState<boolean>(false);
   
   // Achievements UI state
   const [achievementCategory, setAchievementCategory] = useState<string>("all");
@@ -383,6 +492,16 @@ export default function BusinessEmpireGame() {
           mortar: 70,
           wood: 70,
         },
+        regionalResources: {
+          agriculture: {
+            iron_ore: 70,
+            stone: 70,
+            mortar: 70,
+            wood: 70,
+          }
+        },
+        activeRegionId: "agriculture",
+        unlockedRegions: ["agriculture"],
         buildings: [],
         companies: [],
         skills: {
@@ -404,8 +523,91 @@ export default function BusinessEmpireGame() {
     }
   };
 
-  // --- Helpers for Grid Math ---
-  const gridSize = 15;
+  // --- Regional Helpers ---
+  const activeRegionId = gameState.activeRegionId || "agriculture";
+  const activeRegion = REGION_CONFIGS[activeRegionId] || REGION_CONFIGS.agriculture;
+  const gridSize = activeRegion.gridSize;
+
+  const townHall = gameState.buildings.find(b => b.type === "town_hall");
+  const adminLevel = townHall ? townHall.level : 1;
+
+  const currentAge = (() => {
+    if (adminLevel >= 10) return "Nuclear Age";
+    if (adminLevel >= 7) return "Technology Age";
+    if (adminLevel >= 4) return "Industrial Age";
+    return "Foundation Age";
+  })();
+
+  const switchRegion = (regionId: string) => {
+    const config = REGION_CONFIGS[regionId];
+    if (!config) return;
+
+    if (adminLevel < config.unlockLevel) {
+      alert(`🔒 Region Locked: Requires Administrative HQ Level ${config.unlockLevel} to unlock. Current Administrative HQ Level: ${adminLevel}.`);
+      return;
+    }
+
+    setGameState(prev => {
+      const unlocked = prev.unlockedRegions || ["agriculture"];
+      const nextUnlocked = unlocked.includes(regionId) ? unlocked : [...unlocked, regionId];
+      
+      const nextRegRes = { ...prev.regionalResources };
+      if (!nextRegRes[regionId]) {
+        nextRegRes[regionId] = {
+          wood: 80,
+          stone: 80,
+          mortar: 40,
+          iron_ore: 60
+        };
+        Object.keys(RESOURCES_CONFIG).forEach(resId => {
+          if (nextRegRes[regionId][resId] === undefined) {
+            nextRegRes[regionId][resId] = 0;
+          }
+        });
+      }
+
+      const hasRegHq = prev.buildings.some(b => b.type === "regional_hq" && (b.regionId || "agriculture") === regionId);
+      const nextBuildings = [...prev.buildings];
+      const nextNodes = [...prev.depositNodes];
+      
+      if (!hasRegHq) {
+        nextBuildings.push({
+          id: `regional-hq-${regionId}-${Date.now()}`,
+          type: "regional_hq",
+          x: 2,
+          y: 2,
+          level: 1,
+          regionId: regionId,
+          integrity: 100,
+          departments: {
+            logistics: 1,
+            builder: 1,
+            imports: 1
+          }
+        });
+        
+        const hasRegionNodes = prev.depositNodes.some(n => n.regionId === regionId);
+        if (!hasRegionNodes) {
+          const newNodes = generateRegionDepositNodes(regionId).map(n => ({
+            ...n,
+            regionId
+          }));
+          nextNodes.push(...newNodes);
+        }
+      }
+
+      return {
+        ...prev,
+        activeRegionId: regionId,
+        unlockedRegions: nextUnlocked,
+        regionalResources: nextRegRes,
+        buildings: nextBuildings,
+        depositNodes: nextNodes
+      };
+    });
+
+    setIsRegionSwitcherOpen(false);
+  };
 
   // Check if building fits, doesn't overlap, and matches deposit nodes for extractors
   const canPlaceBuilding = (
@@ -487,22 +689,29 @@ export default function BusinessEmpireGame() {
     }
 
     // V0.12: Road Adjacency & Connectivity check
-    if (type !== "road") {
-      const roads = gameState.roads || [];
+    if (type !== "road" && type !== "regional_hq") {
+      const activeRegId = gameState.activeRegionId || "agriculture";
+      const roads = (gameState.roads || []).filter(r => (r.regionId || "agriculture") === activeRegId);
       const hasAdjRoad = roads.some(r => isAdjacent(x, y, config.width, config.height, r.x, r.y));
       if (!hasAdjRoad) {
         return false;
       }
 
-      const logHq = gameState.buildings.find(b => b.type === "logistics_hq" && b.id !== excludeId);
-      if (logHq) {
-        const logHqConfig = BUILDING_CONFIGS.logistics_hq;
-        const logHqW = logHqConfig.width || 2;
-        const logHqH = logHqConfig.height || 2;
+      // Check connectivity to the local hub in the active region
+      const localHub = gameState.buildings.find(b => 
+        (b.type === "regional_hq" || b.type === "logistics_hq" || b.type === "town_hall") && 
+        (b.regionId || "agriculture") === activeRegId && 
+        b.id !== excludeId
+      );
+
+      if (localHub) {
+        const hubConfig = BUILDING_CONFIGS[localHub.type];
+        const hubW = hubConfig.width || 2;
+        const hubH = hubConfig.height || 2;
         
-        const startingRoads = roads.filter(r => isAdjacent(logHq.x, logHq.y, logHqW, logHqH, r.x, r.y));
+        const startingRoads = roads.filter(r => isAdjacent(localHub.x, localHub.y, hubW, hubH, r.x, r.y));
         if (startingRoads.length === 0) {
-          if (type !== "logistics_hq") return false;
+          if (type !== "logistics_hq" && type !== "town_hall") return false;
         }
 
         const roadSet = new Set(roads.map(r => `${r.x},${r.y}`));
@@ -530,8 +739,8 @@ export default function BusinessEmpireGame() {
           }
         }
 
-        const hasLogHqConnection = adjRoads.some(r => visited.has(`${r.x},${r.y}`));
-        if (type !== "logistics_hq" && !hasLogHqConnection) {
+        const hasHubConnection = adjRoads.some(r => visited.has(`${r.x},${r.y}`));
+        if (type !== "logistics_hq" && type !== "town_hall" && !hasHubConnection) {
           return false;
         }
       }
@@ -584,7 +793,7 @@ export default function BusinessEmpireGame() {
               ...prev,
               money: prev.money - 10,
               resources: updatedResources,
-              roads: [...(prev.roads || []), { x, y }]
+              roads: [...(prev.roads || []), { x, y, regionId: prev.activeRegionId || "agriculture" }]
             };
           });
           if (tutorialStep === 2) {
@@ -616,6 +825,7 @@ export default function BusinessEmpireGame() {
                   x,
                   y,
                   level: 1,
+                  regionId: prev.activeRegionId || "agriculture",
                   revenue: 0,
                   profit: 0,
                   skills: {},
@@ -739,6 +949,7 @@ export default function BusinessEmpireGame() {
                 x,
                 y,
                 level: 1,
+                regionId: prev.activeRegionId || "agriculture",
                 progressionLevel: 1, // Default Shop/Office
                 recipeId: placingType.includes("factory") ? "" : undefined,
                 productionQuota: config.category === "factory" ? -1 : undefined,
@@ -763,6 +974,7 @@ export default function BusinessEmpireGame() {
 
     // Selection checking
     const clickedBuilding = gameState.buildings.find(b => {
+      if ((b.regionId || "agriculture") !== activeRegionId) return false;
       const config = BUILDING_CONFIGS[b.type];
       return config && x >= b.x && x < b.x + config.width && y >= b.y && y < b.y + config.height;
     });
@@ -795,17 +1007,28 @@ export default function BusinessEmpireGame() {
     
     // Generate layout clusters on grid based on chosen business
     const customNodes = generateRegionDepositNodes(businessType);
-    setGameState(prev => ({
-      ...prev,
-      depositNodes: customNodes,
-      money: 25000,
-      resources: {
+    setGameState(prev => {
+      const nextRegRes = { ...prev.regionalResources };
+      nextRegRes.agriculture = {
         iron_ore: 60,
         stone: 80,
         mortar: 40,
         wood: 80,
-      }
-    }));
+      };
+      
+      return {
+        ...prev,
+        depositNodes: customNodes,
+        money: 25000,
+        resources: {
+          iron_ore: 60,
+          stone: 80,
+          mortar: 40,
+          wood: 80,
+        },
+        regionalResources: nextRegRes
+      };
+    });
   };
 
   const handleTutorialSpeedUp = () => {
@@ -1596,6 +1819,14 @@ export default function BusinessEmpireGame() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 font-sans flex flex-col antialiased">
+      {/* Portrait orientation warning helper */}
+      <div className="md:hidden portrait:flex hidden fixed inset-0 bg-neutral-950 z-[9999] flex-col items-center justify-center p-6 text-center">
+        <div className="text-4xl mb-4">🔄</div>
+        <h2 className="text-base font-bold text-neutral-100 uppercase tracking-wider mb-2">Rotate your Device</h2>
+        <p className="text-xs text-neutral-400 max-w-[260px] leading-relaxed">
+          Please rotate your phone to Landscape mode for the best RTS-style Business Empire grid experience.
+        </p>
+      </div>
       
       {/* Tutorial Advisor Overlay Panel */}
       {(() => {
@@ -2040,15 +2271,25 @@ export default function BusinessEmpireGame() {
             <Layers className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-neutral-200 to-neutral-400 bg-clip-text text-transparent">
+            <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-neutral-200 to-neutral-400 bg-clip-text text-transparent flex items-center gap-2">
               Business Empire
+              <span className="text-[10px] font-black uppercase bg-indigo-950/80 border border-indigo-900/60 p-0.5 px-2 rounded-lg text-indigo-400">
+                ⚡ {currentAge} (Lvl {adminLevel})
+              </span>
             </h1>
-            <p className="text-xs text-neutral-450 font-mono">Prototype V0.8 • Time & Tick System Redesign</p>
+            <p className="text-xs text-neutral-450 font-mono">Prototype V0.8 • Tech Age & Multi-Region Expansion</p>
             {/* Calendar & Time Control HUD */}
             <div className="flex items-center gap-2 mt-1.5 text-[9px] font-mono bg-neutral-950 p-1 px-2 rounded-lg border border-neutral-850">
               <span className="text-amber-500 font-bold uppercase tracking-wider">
                 📅 Y{(gameState.calendar?.year || 1)} M{(gameState.calendar?.month || 1)} D{(gameState.calendar?.day || 1)}
               </span>
+              <span className="text-neutral-700">|</span>
+              <button
+                onClick={() => setIsRegionSwitcherOpen(true)}
+                className="bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800 px-2 py-0.5 rounded text-[8px] font-extrabold uppercase text-amber-400 flex items-center gap-1 transition"
+              >
+                🗺️ Region: {activeRegion.name}
+              </button>
               <span className="text-neutral-700">|</span>
               <span className="text-neutral-400">Speed:</span>
               <select
@@ -2345,7 +2586,7 @@ export default function BusinessEmpireGame() {
               )}
 
               {/* Grid visualization */}
-              <div className="w-full bg-neutral-900 border border-neutral-800 rounded-2xl p-4 shadow-xl flex flex-col items-center">
+              <div className="w-full bg-neutral-900 border border-neutral-800 rounded-2xl p-4 shadow-xl flex flex-col items-center grid-visualizer-container">
                 <div className="text-[10px] text-neutral-500 font-mono mb-2 self-start flex justify-between w-full">
                   <span>Hover tiles to inspect. Click to select building.</span>
                   <span>GridSize: 20x20</span>
@@ -2361,23 +2602,27 @@ export default function BusinessEmpireGame() {
                       <React.Fragment key={y}>
                         {Array.from({ length: gridSize }).map((_, x) => {
                           
+                          const activeRegId = gameState.activeRegionId || "agriculture";
+
                           // Check for placed buildings
                           const building = gameState.buildings.find(b => {
+                            if ((b.regionId || "agriculture") !== activeRegId) return false;
                             const config = BUILDING_CONFIGS[b.type];
                             return config && x >= b.x && x < b.x + config.width && y >= b.y && y < b.y + config.height;
                           });
 
                           // Check for merged companies
                           const company = gameState.companies.find(c => {
+                            if ((c.regionId || "agriculture") !== activeRegId) return false;
                             const config = BUILDING_CONFIGS[c.type];
                             return config && x >= c.x && x < c.x + config.width && y >= c.y && y < c.y + config.height;
                           });
 
                           // Natural Deposit nodes marker (displayed behind buildings)
-                          const depositNode = gameState.depositNodes.find(n => n.x === x && n.y === y);
+                          const depositNode = gameState.depositNodes.find(n => (n.regionId || "agriculture") === activeRegId && n.x === x && n.y === y);
 
                           // V0.5 Road check
-                          const isRoad = (gameState.roads || []).some(r => r.x === x && r.y === y);
+                          const isRoad = (gameState.roads || []).some(r => (r.regionId || "agriculture") === activeRegId && r.x === x && r.y === y);
 
                           const activeCell = building || company;
                           const isTopLeft = activeCell && activeCell.x === x && activeCell.y === y;
@@ -2512,6 +2757,85 @@ export default function BusinessEmpireGame() {
                     Build
                   </span>
                 </button>
+              )}
+
+              {/* Region Switcher Modal */}
+              {isRegionSwitcherOpen && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                  <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-2xl w-full max-w-2xl space-y-4 shadow-2xl flex flex-col max-h-[90vh]">
+                    <div className="flex justify-between items-center pb-2 border-b border-neutral-850">
+                      <h2 className="text-sm font-black text-neutral-100 uppercase tracking-wider flex items-center gap-2">
+                        🗺️ World Map & Region Switcher
+                      </h2>
+                      <button
+                        onClick={() => setIsRegionSwitcherOpen(false)}
+                        className="text-xs text-neutral-450 hover:text-neutral-200 transition font-mono uppercase font-bold"
+                      >
+                        Close
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto pr-1">
+                      {Object.values(REGION_CONFIGS).map(region => {
+                        const isUnlocked = adminLevel >= region.unlockLevel;
+                        const isActive = activeRegionId === region.id;
+
+                        return (
+                          <div
+                            key={region.id}
+                            className={`p-4 rounded-xl border flex flex-col justify-between transition-all ${
+                              isActive
+                                ? "bg-amber-500/10 border-amber-500"
+                                : isUnlocked
+                                ? "bg-neutral-950/45 border-neutral-850 hover:border-neutral-750 cursor-pointer"
+                                : "bg-neutral-950/20 border-neutral-900 opacity-60"
+                            }`}
+                            onClick={() => {
+                              if (isUnlocked) {
+                                switchRegion(region.id);
+                              }
+                            }}
+                          >
+                            <div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs font-bold text-neutral-100 flex items-center gap-1.5">
+                                  {region.id === "agriculture" ? "🌾" : region.id === "forestry" ? "🌳" : region.id === "industrial" ? "🏭" : region.id === "technology" ? "🔌" : region.id === "healthcare" ? "🧪" : "🛍️"} {region.name}
+                                </span>
+                                {isActive ? (
+                                  <span className="text-[9px] font-black uppercase text-amber-500 bg-amber-500/10 p-0.5 px-1.5 rounded">Active</span>
+                                ) : isUnlocked ? (
+                                  <span className="text-[9px] font-black uppercase text-emerald-400 bg-emerald-450/10 p-0.5 px-1.5 rounded">Unlocked</span>
+                                ) : (
+                                  <span className="text-[9px] font-black uppercase text-rose-400 bg-rose-450/10 p-0.5 px-1.5 rounded">Locked (HQ Lvl {region.unlockLevel})</span>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-neutral-400 mt-1 leading-normal">
+                                {region.description}
+                              </p>
+                              <div className="mt-2 flex flex-col gap-1 text-[9px] text-neutral-400 font-mono">
+                                <div><span className="text-amber-500">Buff:</span> {region.buffDescription}</div>
+                                <div><span className="text-neutral-500">Grid Size:</span> {region.gridSize}x{region.gridSize}</div>
+                                <div><span className="text-neutral-500">Key Nodes:</span> {region.depositTypes.map(t => t.replace("_deposit", "").replace("_field", "")).join(", ")}</div>
+                              </div>
+                            </div>
+
+                            {isUnlocked && !isActive && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  switchRegion(region.id);
+                                }}
+                                className="w-full mt-3 py-1.5 bg-neutral-800 hover:bg-amber-500 hover:text-neutral-950 rounded-lg text-[10px] font-bold transition uppercase tracking-wider"
+                              >
+                                Switch to Region
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
               )}
 
               {/* Build Menu Catalog Modal */}

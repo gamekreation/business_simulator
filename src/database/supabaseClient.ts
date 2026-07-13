@@ -20,6 +20,7 @@ export interface GameState {
     x: number;
     y: number;
     level: number;
+    regionId?: string;
     // Progression level: 1 = Retail Shop / Office, 2 = Showroom / Professional Firm, 3 = Dealership / Corporate Office
     progressionLevel?: number;
     recipeId?: string; // Selected manufacturing recipe
@@ -38,6 +39,7 @@ export interface GameState {
     x: number;
     y: number;
     level: number;
+    regionId?: string;
     revenue: number;
     profit: number;
     skills: Record<string, number>;
@@ -53,6 +55,7 @@ export interface GameState {
     x: number;
     y: number;
     type: "iron_deposit" | "coal_deposit" | "oil_field" | "limestone_deposit" | "fertile_land" | "forest" | "stone_deposit" | "copper_deposit" | "silicon_deposit" | "uranium_deposit";
+    regionId?: string;
   }>;
   vehicles: Array<{
     id: string;
@@ -67,6 +70,7 @@ export interface GameState {
     resource: string;
     qty: number;
     timeRemaining: number; // in seconds
+    regionId?: string;
   }>;
   // V0.3 Dispatch-based shipments queue
   shipments?: Array<{
@@ -75,6 +79,7 @@ export interface GameState {
     resource: string;
     qty: number;
     qtyDelivered: number;
+    regionId?: string;
   }>;
   // V0.5 Builder Queue and Roads
   buildersCount?: number;
@@ -90,6 +95,7 @@ export interface GameState {
   roads?: Array<{
     x: number;
     y: number;
+    regionId?: string;
   }>;
   // V0.7 Premium Currency & Achievements
   gems?: number;
@@ -106,6 +112,11 @@ export interface GameState {
   timePresetMode?: "debug" | "fast_testing" | "development" | "beta_testing" | "release";
   salaryDebt?: number;
   salaryDebtDaysLeft?: number;
+
+  // Regional Tracking Properties
+  activeRegionId?: string;
+  unlockedRegions?: string[];
+  regionalResources?: Record<string, Record<string, number>>;
 }
 
 export interface PlayerStats {
@@ -231,6 +242,14 @@ function sanitizeGameState(state: any): GameState {
   }
   if (!state.timePresetMode) {
     state.timePresetMode = "development";
+  }
+
+  if (!state.activeRegionId) state.activeRegionId = "agriculture";
+  if (!Array.isArray(state.unlockedRegions)) state.unlockedRegions = ["agriculture"];
+  if (!state.regionalResources) {
+    state.regionalResources = {
+      agriculture: { ...(state.resources || {}) }
+    };
   }
 
   return state as GameState;

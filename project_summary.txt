@@ -366,3 +366,24 @@ Enforced Road Construction Target:
 * Placed Roads Check: Wired the road construction event to check if the total number of placed roads reaches 12 before advancing to Step 3 (Administrative HQ / Town Hall).
 * Dynamic Advisor Badge: Binds a real-time progress text string `(Progress: X/12)` inside the government advisor box to show the player exactly how many roads they have constructed.
 
+--------------------------------------------------------------------------------
+16. VERSION 0.17: MASTER WORLD STRUCTURE & MULTI-REGION EXPANSION
+--------------------------------------------------------------------------------
+World & Region Architecture:
+* Six Specialized Regions: Agriculture (14x14, crop buff), Forestry (15x15, wood buff), Industrial (20x20, manufacturing rate buff), Technology (16x16, electronics buff), Healthcare (15x15, pharma buff), and Commercial (16x16, sales/billing buff).
+* Independent Warehousing: Resources and warehouse capacity are isolated per region. Switching regions loads that region's local inventories.
+* Administrative & Regional HQ split:
+  - Administrative HQ (Town Hall) upgrades control National Progression, unlocking Ages (Foundation: Lvl 1-3, Industrial: Lvl 4-6, Tech: Lvl 7-9, Nuclear: Lvl 10+) and region accessibility.
+  - Regional HQ Hub acts as the local operational center (managing regional construction, logistics, and imports). Auto-placed upon unlocking a region.
+* Localized Logistics Networks: Logistics trucks and shipments operate within their respective regions.
+
+User Interface & Controls:
+* Region Switcher Drawer: Integrated a world map switcher displaying all 6 regions, locked/unlocked states, dynamic grid sizes, and buffs.
+* Age HUD Indicator: Visual badge at the top header displaying the active technological Age based on the Administrative HQ level.
+* Map Filtering: Filtered roads, buildings, deposit nodes, and companies so only active region cells render on the screen.
+--------------------------------------------------------------------------------
+17. VERSION 0.18: MOBILE LANDSCAPE OPTIMIZATIONS
+--------------------------------------------------------------------------------
+Mobile Orientation Warning Banner:
+* Portrait Rotation Cover: Added a fullscreen portrait blocker overlay on mobile screens, politely suggesting users rotate their phones to landscape orientation for optimal RTS multi-column view.
+* Responsive CSS Landscape Overrides: Added landscape media rules in globals.css that restructure the header and grid layouts, scaling down components to cleanly fit the viewport height without vertically overflowing.
