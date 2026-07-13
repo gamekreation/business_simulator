@@ -1,4 +1,5 @@
 import { BUILDING_CONFIGS, BuildingConfig, RESOURCES_CONFIG, FACTORY_RECIPES, VEHICLE_CONFIGS } from "../buildings/buildingConfig";
+import { getConnectedBuildings } from "./roadPathfinder";
 import { GameState } from "../database/supabaseClient";
 import { getSecondsPerGameDay } from "./timeConfig";
 
@@ -219,6 +220,8 @@ export function runSimulationTick(state: GameState): TickResult {
     }
   });
 
+  const connectedBuildingIds = getConnectedBuildings(nextState);
+
   // 4. Extractor Node Production (Iron Mine, Quarry, Oil Rig, Coal Shaft, Farm)
   // Extractors must be built on matching natural deposit nodes.
   nextState.buildings.forEach(b => {
@@ -227,6 +230,14 @@ export function runSimulationTick(state: GameState): TickResult {
 
     const config = BUILDING_CONFIGS[b.type];
     if (!config || config.category !== "extractor") return;
+
+    // V0.12: Road connectivity check
+    if (!connectedBuildingIds.has(b.id)) {
+      if (Math.random() < 0.02) {
+        logs.push(`⚠️ Operational Halted: ${config.name} has no road access to Logistics HQ!`);
+      }
+      return;
+    }
 
     // V0.3 Agriculture Farm handles its crop growth cycle separately!
     if (b.type === "agricultural_farm") return;
@@ -287,6 +298,14 @@ export function runSimulationTick(state: GameState): TickResult {
 
     const config = BUILDING_CONFIGS[b.type];
     if (!config || config.category !== "factory") return;
+
+    // V0.12: Road connectivity check
+    if (!connectedBuildingIds.has(b.id)) {
+      if (Math.random() < 0.02) {
+        logs.push(`⚠️ Operational Halted: ${config.name} has no road access to Logistics HQ!`);
+      }
+      return;
+    }
 
     // Verify integrity (0% stops production)
     if (b.integrity !== undefined && b.integrity <= 0) return;
@@ -399,6 +418,14 @@ export function runSimulationTick(state: GameState): TickResult {
     const config = BUILDING_CONFIGS[b.type];
     if (!config || config.category !== "service") return;
 
+    // V0.12: Road connectivity check
+    if (!connectedBuildingIds.has(b.id)) {
+      if (Math.random() < 0.02) {
+        logs.push(`⚠️ Operational Halted: ${config.name} has no road access to Logistics HQ!`);
+      }
+      return;
+    }
+
     // Verify integrity (0% stops service billing)
     if (b.integrity !== undefined && b.integrity <= 0) return;
 
@@ -458,6 +485,14 @@ export function runSimulationTick(state: GameState): TickResult {
     const config = BUILDING_CONFIGS[b.type];
     if (!config || config.category !== "retail") return;
 
+    // V0.12: Road connectivity check
+    if (!connectedBuildingIds.has(b.id)) {
+      if (Math.random() < 0.02) {
+        logs.push(`⚠️ Operational Halted: ${config.name} has no road access to Logistics HQ!`);
+      }
+      return;
+    }
+
     // Verify integrity (0% stops sales operations)
     if (b.integrity !== undefined && b.integrity <= 0) return;
 
@@ -509,6 +544,14 @@ export function runSimulationTick(state: GameState): TickResult {
   nextState.companies.forEach(company => {
     const config = BUILDING_CONFIGS[company.type];
     if (!config) return;
+
+    // V0.12: Road connectivity check
+    if (!connectedBuildingIds.has(company.id)) {
+      if (Math.random() < 0.02) {
+        logs.push(`⚠️ Operational Halted: ${config.name} has no road access to Logistics HQ!`);
+      }
+      return;
+    }
 
     // HQ Maintenance
     const levelMult = 1 + (company.level - 1) * 0.8;
@@ -590,6 +633,14 @@ export function runSimulationTick(state: GameState): TickResult {
     // V0.5 Skip busy construction buildings
     if ((nextState.constructionQueue || []).some(cq => cq.buildingId === b.id)) return;
 
+    // V0.12: Road connectivity check
+    if (!connectedBuildingIds.has(b.id)) {
+      if (Math.random() < 0.02) {
+        logs.push(`⚠️ Operational Halted: Agricultural Farm has no road access to Logistics HQ!`);
+      }
+      return;
+    }
+
     // Verify integrity (0% pauses crop growth)
     if (b.integrity !== undefined && b.integrity <= 0) return;
 
@@ -643,8 +694,8 @@ export function runSimulationTick(state: GameState): TickResult {
 
       const truckCapacity = (cfg.capacity || 50) * (1 + (v.capacityLevel - 1) * 0.25);
       
-      // Find the first shipment that is not yet fully delivered
-      const activeShipment = nextState.shipments.find(s => s.qtyDelivered < s.qty);
+      // Find the first shipment that is not yet fully delivered and has valid road access to Logistics HQ
+      const activeShipment = nextState.shipments.find(s => s.qtyDelivered < s.qty && (!s.buildingId || connectedBuildingIds.has(s.buildingId)));
       if (!activeShipment) break;
 
       const resConfig = RESOURCES_CONFIG[activeShipment.resource];
@@ -752,7 +803,11 @@ export function runSimulationTick(state: GameState): TickResult {
 
   // 12. V0.3 Imports Delivery countdown
   if (nextState.imports && nextState.imports.length > 0) {
+    const tradeCenter = nextState.buildings.find(b => b.type === "trade_center");
+    const isTradeConnected = tradeCenter ? connectedBuildingIds.has(tradeCenter.id) : true;
+
     nextState.imports = nextState.imports.map(imp => {
+      if (!isTradeConnected) return imp;
       return {
         ...imp,
         timeRemaining: imp.timeRemaining - 1

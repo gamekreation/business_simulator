@@ -23,8 +23,8 @@ export const RESOURCES_CONFIG: Record<string, ResourceConfig> = {
   
   steel: { id: "steel", name: "Steel", category: "processed", volume: 4, basePrice: 65 },
   fuel: { id: "fuel", name: "Fuel", category: "processed", volume: 3, basePrice: 50 },
-  mortar: { id: "mortar", name: "Mortar", category: "processed", volume: 3, basePrice: 35 },
-  cement: { id: "cement", name: "Cement", category: "processed", volume: 5, basePrice: 40 },
+  mortar: { id: "mortar", name: "Mortar", category: "processed", volume: 3, basePrice: 70 },
+  cement: { id: "cement", name: "Cement", category: "processed", volume: 5, basePrice: 20 },
   clothes: { id: "clothes", name: "Clothes", category: "processed", volume: 2, basePrice: 60 },
   grocery_goods: { id: "grocery_goods", name: "Grocery Goods", category: "processed", volume: 2, basePrice: 45 },
   food: { id: "food", name: "Processed Food", category: "processed", volume: 3, basePrice: 35 },
@@ -55,19 +55,19 @@ export const FACTORY_RECIPES: Record<string, FactoryRecipe> = {
     id: "food_processing",
     name: "Food Processing",
     inputs: [{ resource: "fertile_land_crop", amount: 3 }],
-    outputs: [{ resource: "food", amount: 1 }]
+    outputs: [{ resource: "food", amount: 6 }]
   },
   grocery_processing: {
     id: "grocery_processing",
     name: "Grocery Processing",
     inputs: [{ resource: "fertile_land_crop", amount: 2 }],
-    outputs: [{ resource: "grocery_goods", amount: 1 }]
+    outputs: [{ resource: "grocery_goods", amount: 6 }]
   },
   clothing_weaving: {
     id: "clothing_weaving",
     name: "Clothing Manufacturing",
     inputs: [{ resource: "cotton", amount: 2 }],
-    outputs: [{ resource: "clothes", amount: 1 }]
+    outputs: [{ resource: "clothes", amount: 6 }]
   },
   steel_smelting: {
     id: "steel_smelting",
@@ -97,19 +97,19 @@ export const FACTORY_RECIPES: Record<string, FactoryRecipe> = {
     id: "medicine_synthesis",
     name: "Medicine Synthesis",
     inputs: [{ resource: "chemicals", amount: 2 }],
-    outputs: [{ resource: "medicine", amount: 1 }]
+    outputs: [{ resource: "medicine", amount: 4 }]
   },
   electronics_assembly: {
     id: "electronics_assembly",
     name: "Electronics Assembly",
     inputs: [{ resource: "copper_ore", amount: 2 }, { resource: "silicon", amount: 1 }],
-    outputs: [{ resource: "electronics", amount: 1 }]
+    outputs: [{ resource: "electronics", amount: 4 }]
   },
   furniture_making: {
     id: "furniture_making",
     name: "Furniture Crafting",
     inputs: [{ resource: "wood", amount: 2 }],
-    outputs: [{ resource: "furniture", amount: 1 }]
+    outputs: [{ resource: "furniture", amount: 4 }]
   },
   car_parts_factory: {
     id: "car_parts_factory",
@@ -121,7 +121,7 @@ export const FACTORY_RECIPES: Record<string, FactoryRecipe> = {
     id: "vehicle_assembly",
     name: "Vehicle Assembly",
     inputs: [{ resource: "car_parts", amount: 2 }],
-    outputs: [{ resource: "vehicles", amount: 1 }]
+    outputs: [{ resource: "vehicles", amount: 2 }]
   },
   power_generation: {
     id: "power_generation",
@@ -573,13 +573,13 @@ export const BUILDING_CONFIGS: Record<string, BuildingConfig> = {
     category: "service",
     width: 3,
     height: 3,
-    baseCost: 3000,
-    baseIronCost: 80,
-    baseStoneCost: 60,
-    baseMortarCost: 40,
-    baseWoodCost: 100,
-    baseMaintenance: 30,
-    description: "Luxury lodgings. Requires 80 Iron, 60 Stone, 40 Mortar, 100 Wood.",
+    baseCost: 7500,
+    baseIronCost: 250,
+    baseStoneCost: 200,
+    baseMortarCost: 150,
+    baseWoodCost: 300,
+    baseMaintenance: 45,
+    description: "Luxury resort. Requires 250 Iron, 200 Stone, 150 Mortar, 300 Wood.",
     color: "bg-yellow-600 border border-neutral-100",
   },
 
@@ -830,10 +830,10 @@ export const MERGERS_CONFIG: Record<string, MergerConfig> = {
     requirements: {
       clothing_shop: { qty: 1, minProgression: 1 },
       small_factory: { qty: 1 },
-      clothing_shop_showroom: { qty: 1, minProgression: 2 },
+      clothing_shop_showroom: { qty: 2, minProgression: 2 },
     },
     hqBuildingType: "clothing_company_hq",
-    description: "Combine 1 Clothing Shop, 1 Small Factory, and 1 Clothing Showroom (Progression 2).",
+    description: "Combine 1 Clothing Shop, 1 Small Factory, and 2 Clothing Showrooms (Progression 2).",
   },
   car_company: {
     id: "car_company",

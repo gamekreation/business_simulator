@@ -48,6 +48,7 @@ import {
 } from "../buildings/departmentConfig";
 import { runSimulationTick, TickResult } from "../simulation/simulationEngine";
 import { getSecondsPerGameDay } from "../simulation/timeConfig";
+import { isAdjacent, getConnectedBuildings } from "../simulation/roadPathfinder";
 import { GameState, saveGame, loadGame, isSupabaseConfigured } from "../database/supabaseClient";
 import { ACHIEVEMENT_GROUPS, evaluateAchievement } from "../achievements/achievementConfig";
 
@@ -280,14 +281,16 @@ export default function BusinessEmpireGame() {
           const buildings = nextState.buildings || [];
           const queue = nextState.constructionQueue || [];
           
-          if (tutorialStep === 2 && buildings.some(b => b.type === "town_hall") && !queue.some(q => buildings.find(bl => bl.id === q.buildingId)?.type === "town_hall")) {
-            setTimeout(() => setTutorialStep(3), 50);
-          } else if (tutorialStep === 6 && buildings.some(b => b.type === "logistics_hq") && !queue.some(q => buildings.find(bl => bl.id === q.buildingId)?.type === "logistics_hq")) {
-            setTimeout(() => setTutorialStep(7), 50);
-          } else if (tutorialStep === 7 && buildings.some(b => b.type === "builder_company") && !queue.some(q => buildings.find(bl => bl.id === q.buildingId)?.type === "builder_company")) {
+          if (tutorialStep === 3 && buildings.some(b => b.type === "town_hall") && !queue.some(q => buildings.find(bl => bl.id === q.buildingId)?.type === "town_hall")) {
+            setTimeout(() => setTutorialStep(4), 50);
+          } else if (tutorialStep === 7 && buildings.some(b => b.type === "logistics_hq") && !queue.some(q => buildings.find(bl => bl.id === q.buildingId)?.type === "logistics_hq")) {
             setTimeout(() => setTutorialStep(8), 50);
-          } else if (tutorialStep === 8 && tutorialSelectedBusiness && buildings.some(b => b.type === tutorialSelectedBusiness) && !queue.some(q => buildings.find(bl => bl.id === q.buildingId)?.type === tutorialSelectedBusiness)) {
+          } else if (tutorialStep === 8 && buildings.some(b => b.type === "builder_company") && !queue.some(q => buildings.find(bl => bl.id === q.buildingId)?.type === "builder_company")) {
             setTimeout(() => setTutorialStep(9), 50);
+          } else if (tutorialStep === 9 && tutorialSelectedBusiness && buildings.some(b => b.type === tutorialSelectedBusiness) && !queue.some(q => buildings.find(bl => bl.id === q.buildingId)?.type === tutorialSelectedBusiness)) {
+            setTimeout(() => setTutorialStep(10), 50);
+          } else if (tutorialStep === 10 && buildings.some(b => b.type === "lumber_mill") && !queue.some(q => buildings.find(bl => bl.id === q.buildingId)?.type === "lumber_mill")) {
+            setTimeout(() => setTutorialStep(11), 50);
           }
         }
         return result.nextState;
@@ -483,6 +486,57 @@ export default function BusinessEmpireGame() {
       }
     }
 
+    // V0.12: Road Adjacency & Connectivity check
+    if (type !== "road") {
+      const roads = gameState.roads || [];
+      const hasAdjRoad = roads.some(r => isAdjacent(x, y, config.width, config.height, r.x, r.y));
+      if (!hasAdjRoad) {
+        return false;
+      }
+
+      const logHq = gameState.buildings.find(b => b.type === "logistics_hq" && b.id !== excludeId);
+      if (logHq) {
+        const logHqConfig = BUILDING_CONFIGS.logistics_hq;
+        const logHqW = logHqConfig.width || 2;
+        const logHqH = logHqConfig.height || 2;
+        
+        const startingRoads = roads.filter(r => isAdjacent(logHq.x, logHq.y, logHqW, logHqH, r.x, r.y));
+        if (startingRoads.length === 0) {
+          if (type !== "logistics_hq") return false;
+        }
+
+        const roadSet = new Set(roads.map(r => `${r.x},${r.y}`));
+        const adjRoads = roads.filter(r => isAdjacent(x, y, config.width, config.height, r.x, r.y));
+
+        const visited = new Set<string>();
+        const queue: string[] = startingRoads.map(r => `${r.x},${r.y}`);
+        startingRoads.forEach(r => visited.add(`${r.x},${r.y}`));
+
+        while (queue.length > 0) {
+          const current = queue.shift()!;
+          const [cx, cy] = current.split(",").map(Number);
+          const neighbors = [
+            { x: cx + 1, y: cy },
+            { x: cx - 1, y: cy },
+            { x: cx, y: cy + 1 },
+            { x: cx, y: cy - 1 }
+          ];
+          for (const n of neighbors) {
+            const key = `${n.x},${n.y}`;
+            if (roadSet.has(key) && !visited.has(key)) {
+              visited.add(key);
+              queue.push(key);
+            }
+          }
+        }
+
+        const hasLogHqConnection = adjRoads.some(r => visited.has(`${r.x},${r.y}`));
+        if (type !== "logistics_hq" && !hasLogHqConnection) {
+          return false;
+        }
+      }
+    }
+
     return true;
   };
 
@@ -533,6 +587,12 @@ export default function BusinessEmpireGame() {
               roads: [...(prev.roads || []), { x, y }]
             };
           });
+          if (tutorialStep === 2) {
+            const roadCount = (gameState.roads || []).length + 1;
+            if (roadCount >= 12) {
+              setTutorialStep(3);
+            }
+          }
         }
         return;
       }
@@ -569,10 +629,10 @@ export default function BusinessEmpireGame() {
         }
         return;
       }
-      // Tutorial Step 4 Intercept - simulate failure
-      if (tutorialStep === 4) {
+      // Tutorial Step 5 Intercept - simulate failure
+      if (tutorialStep === 5) {
         alert("Construction Failed: Insufficient Construction Materials!\n\nAdvisor: Running a business isn't only about money. Sometimes you simply don't have the required materials. Let's import them.");
-        setTutorialStep(5);
+        setTutorialStep(6);
         setPlacingType(null);
         return;
       }
@@ -597,7 +657,18 @@ export default function BusinessEmpireGame() {
         return;
       }
 
-      if (hasResources && canPlaceBuilding(placingType, x, y)) {
+      if (hasResources) {
+        if (!canPlaceBuilding(placingType, x, y)) {
+          if (placingType !== "road") {
+            const hasAdjRoad = (gameState.roads || []).some(r => isAdjacent(x, y, config.width, config.height, r.x, r.y));
+            if (!hasAdjRoad) {
+              alert("🚫 Construction Blocked: Building requires at least one side touching a road.");
+            } else {
+              alert("🚫 Construction Blocked: Building road must connect back to the Logistics HQ.");
+            }
+          }
+          return;
+        }
         const generatedId = `build-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
         // Define builder project duration in game days
@@ -720,7 +791,7 @@ export default function BusinessEmpireGame() {
   // --- Tutorial Handlers ---
   const handleSelectTutorialBusiness = (businessType: string) => {
     setTutorialSelectedBusiness(businessType);
-    setTutorialStep(4);
+    setTutorialStep(5);
     
     // Generate layout clusters on grid based on chosen business
     const customNodes = generateRegionDepositNodes(businessType);
@@ -743,16 +814,16 @@ export default function BusinessEmpireGame() {
       constructionQueue: []
     }));
 
-    if (tutorialStep === 2) {
-      setTutorialStep(3);
-    } else if (tutorialStep === 5) {
-      // Allow player to click Import Stock button before advancing step
-    } else if (tutorialStep === 6) {
-      setTutorialStep(7);
+    if (tutorialStep === 3) {
+      setTutorialStep(4);
     } else if (tutorialStep === 7) {
       setTutorialStep(8);
     } else if (tutorialStep === 8) {
       setTutorialStep(9);
+    } else if (tutorialStep === 9) {
+      setTutorialStep(10);
+    } else if (tutorialStep === 10) {
+      setTutorialStep(11);
     }
   };
 
@@ -768,8 +839,8 @@ export default function BusinessEmpireGame() {
         resources: updated
       };
     });
-    console.log("Setting tutorial step to 6");
-    setTutorialStep(6);
+    console.log("Setting tutorial step to 7");
+    setTutorialStep(7);
   };
 
   const handleFinishTutorial = () => {
@@ -823,6 +894,13 @@ export default function BusinessEmpireGame() {
     const totalBuilders = 2 + (gameState.buildings.filter(b => b.type === "builder_company" && !(gameState.constructionQueue || []).some(cq => cq.buildingId === b.id)).length);
     if (busyBuilders >= totalBuilders) {
       alert("👷 All builders are busy! Wait for existing projects to complete.");
+      return;
+    }
+
+    // V0.12: Road connectivity check before upgrade
+    const connectedBuildingIds = getConnectedBuildings(gameState);
+    if (!connectedBuildingIds.has(id)) {
+      alert("🚫 Upgrade Disabled: Building has no road access to Logistics HQ!");
       return;
     }
 
@@ -1523,13 +1601,14 @@ export default function BusinessEmpireGame() {
       {(() => {
         const showFullOverlay = 
           tutorialStep === 1 ||
-          tutorialStep === 3 ||
-          tutorialStep === 10 ||
-          (tutorialStep === 2 && gameState.buildings.some(b => b.type === "town_hall")) ||
-          (tutorialStep === 5 && gameState.buildings.some(b => b.type === "trade_center")) ||
-          (tutorialStep === 6 && gameState.buildings.some(b => b.type === "logistics_hq")) ||
-          (tutorialStep === 7 && gameState.buildings.some(b => b.type === "builder_company")) ||
-          (tutorialStep === 8 && gameState.buildings.some(b => b.type === tutorialSelectedBusiness));
+          tutorialStep === 4 ||
+          tutorialStep === 11 ||
+          (tutorialStep === 3 && gameState.buildings.some(b => b.type === "town_hall")) ||
+          (tutorialStep === 6 && gameState.buildings.some(b => b.type === "trade_center")) ||
+          (tutorialStep === 7 && gameState.buildings.some(b => b.type === "logistics_hq")) ||
+          (tutorialStep === 8 && gameState.buildings.some(b => b.type === "builder_company")) ||
+          (tutorialStep === 9 && gameState.buildings.some(b => b.type === tutorialSelectedBusiness)) ||
+          (tutorialStep === 10 && gameState.buildings.some(b => b.type === "lumber_mill"));
 
         if (tutorialStep > 0 && showAdvisor) {
           if (showFullOverlay) {
@@ -1566,8 +1645,8 @@ export default function BusinessEmpireGame() {
                 </>
               )}
 
-              {/* Step 2 Dialog */}
-              {tutorialStep === 2 && (
+              {/* Step 3 Dialog */}
+              {tutorialStep === 3 && (
                 <>
                   <p className="text-neutral-200 leading-relaxed text-sm">
                     "Every industrial region needs local administration. Let's construct our <strong>Administrative Headquarters</strong>."
@@ -1603,8 +1682,8 @@ export default function BusinessEmpireGame() {
                 </>
               )}
 
-              {/* Step 3 Dialog */}
-              {tutorialStep === 3 && (
+              {/* Step 4 Dialog */}
+              {tutorialStep === 4 && (
                 <>
                   <p className="text-neutral-200 leading-relaxed text-sm">
                     "Every entrepreneur starts somewhere. Choose your starting industry business category. This decision populates regional resource node clusters."
@@ -1647,8 +1726,8 @@ export default function BusinessEmpireGame() {
               )}
 
 
-              {/* Step 5 Dialog */}
-              {tutorialStep === 5 && (
+              {/* Step 6 Dialog */}
+              {tutorialStep === 6 && (
                 <>
                   <p className="text-neutral-200 leading-relaxed text-sm">
                     "Running a business isn't only about money. Sometimes you simply don't have the required construction materials. Let's build our <strong>Import Headquarters</strong> to acquire them."
@@ -1695,8 +1774,8 @@ export default function BusinessEmpireGame() {
                 </>
               )}
 
-              {/* Step 6 Dialog */}
-              {tutorialStep === 6 && (
+              {/* Step 7 Dialog */}
+              {tutorialStep === 7 && (
                 <>
                   <p className="text-neutral-200 leading-relaxed text-sm">
                     "Imported goods don't magically arrive. Let's construct a <strong>Logistics Headquarters</strong> to transport resources into your warehouse."
@@ -1727,8 +1806,8 @@ export default function BusinessEmpireGame() {
                 </>
               )}
 
-              {/* Step 7 Dialog */}
-              {tutorialStep === 7 && (
+              {/* Step 8 Dialog */}
+              {tutorialStep === 8 && (
                 <>
                   <p className="text-neutral-200 leading-relaxed text-sm">
                     "Every construction project is managed by your <strong>Builder Company</strong>. Let's construct it now."
@@ -1759,11 +1838,11 @@ export default function BusinessEmpireGame() {
                 </>
               )}
 
-              {/* Step 8 Dialog */}
-              {tutorialStep === 8 && (
+              {/* Step 9 Dialog */}
+              {tutorialStep === 9 && (
                 <>
                   <p className="text-neutral-200 leading-relaxed text-sm">
-                    "Now that we have both the materials and the builders, place your first business shop on the grid again!"
+                    "Now that we have both the materials, builders, and a connecting road network, place your first business shop on the grid!"
                   </p>
                   {gameState.buildings.some(b => b.type === tutorialSelectedBusiness) ? (
                     <button
@@ -1791,9 +1870,40 @@ export default function BusinessEmpireGame() {
                 </>
               )}
 
-
               {/* Step 10 Dialog */}
               {tutorialStep === 10 && (
+                <>
+                  <p className="text-neutral-200 leading-relaxed text-sm">
+                    "Imports are useful, but successful companies eventually produce their own materials. Let's construct a Lumber Mill on a Forest node."
+                  </p>
+                  {gameState.buildings.some(b => b.type === "lumber_mill") ? (
+                    <button
+                      onClick={handleTutorialSpeedUp}
+                      className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-black text-xs uppercase transition"
+                    >
+                      ⚡ Speed Up Project (Free)
+                    </button>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-xs text-neutral-400 italic text-center">
+                        Open build menu extraction tab and place Lumber Mill on a Forest node.
+                      </p>
+                      <button
+                        onClick={() => {
+                          setIsBuildMenuOpen(true);
+                          setCatalogCategory("extraction");
+                        }}
+                        className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-neutral-950 rounded-xl font-black text-xs uppercase transition"
+                      >
+                        Open Build Menu
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Step 11 Dialog */}
+              {tutorialStep === 11 && (
                 <>
                   <p className="text-neutral-200 leading-relaxed text-sm font-bold text-center">
                     🎉 Tutorial Complete!
@@ -1868,24 +1978,25 @@ export default function BusinessEmpireGame() {
             </div>
             
             <div className="text-xs text-neutral-200 leading-relaxed font-sans">
-              {tutorialStep === 2 && "Every industrial region needs local administration. Let's construct our Administrative Headquarters."}
-              {tutorialStep === 4 && `Now place your chosen retail business shop on the grid.`}
-              {tutorialStep === 5 && "Running a business isn't only about money. Sometimes you don't have the required materials. Let's build our Import Headquarters."}
-              {tutorialStep === 6 && "Imported goods don't magically arrive. Let's construct a Logistics Headquarters to transport resources."}
-              {tutorialStep === 7 && "Every construction project is managed by your Builder Company. Let's construct it now."}
-              {tutorialStep === 8 && "Now that we have both the materials and the builders, place your first business shop on the grid again!"}
-              {tutorialStep === 9 && "Imports are useful, but successful companies eventually produce their own materials. Let's construct a Lumber Mill on a Forest node."}
+              {tutorialStep === 2 && `Every town starts with infrastructure. Let's construct a Road network first. Place at least 12 road tiles. (Progress: ${(gameState.roads || []).length}/12)`}
+              {tutorialStep === 3 && "Now, construct your Administrative Headquarters adjacent to the road."}
+              {tutorialStep === 5 && `Now place your chosen retail business shop adjacent to the road.`}
+              {tutorialStep === 6 && "Running a business isn't only about money. Let's build our Import Headquarters next to a road."}
+              {tutorialStep === 7 && "Imported goods don't magically arrive. Let's construct a Logistics Headquarters next to a road."}
+              {tutorialStep === 8 && "Every construction project is managed by your Builder Company. Let's construct it adjacent to a road."}
+              {tutorialStep === 9 && "Now that we have roads, materials, and builders, place your first business shop adjacent to the road!"}
+              {tutorialStep === 10 && "Imports are useful, but successful companies eventually produce their own materials. Let's construct a Lumber Mill on a Forest node adjacent to a road."}
             </div>
 
             <div className="pt-2 flex gap-2">
               <button
                 onClick={() => {
                   setIsBuildMenuOpen(true);
-                  if (tutorialStep === 2 || tutorialStep === 5 || tutorialStep === 6 || tutorialStep === 7) {
+                  if (tutorialStep === 2 || tutorialStep === 3 || tutorialStep === 6 || tutorialStep === 7 || tutorialStep === 8) {
                     setCatalogCategory("infrastructure");
-                  } else if (tutorialStep === 4 || tutorialStep === 8) {
+                  } else if (tutorialStep === 5 || tutorialStep === 9) {
                     setCatalogCategory("commerce");
-                  } else if (tutorialStep === 9) {
+                  } else if (tutorialStep === 10) {
                     setCatalogCategory("extraction");
                   }
                 }}
@@ -2450,7 +2561,7 @@ export default function BusinessEmpireGame() {
                     <div className="flex-1 overflow-y-auto pr-1 space-y-3 scrollbar-thin">
                       {/* V0.5 Road Building Option (Infra tab only) */}
                       {catalogCategory === "infrastructure" && (() => {
-                        if (tutorialStep > 0) return null;
+                        if (tutorialStep > 0 && tutorialStep < 2) return null;
                         const isPlacing = placingType === "road";
                         const hasResources = 
                           gameState.money >= 10 &&
@@ -2499,13 +2610,15 @@ export default function BusinessEmpireGame() {
 
                           // Tutorial step restrictions
                           if (tutorialStep > 0) {
-                            if (tutorialStep === 2) return key === "town_hall";
-                            if (tutorialStep === 4) return key === tutorialSelectedBusiness;
-                            if (tutorialStep === 5) return key === "trade_center";
-                            if (tutorialStep === 6) return key === "logistics_hq";
-                            if (tutorialStep === 7) return key === "builder_company";
-                            if (tutorialStep === 8) return key === tutorialSelectedBusiness;
-                            if (tutorialStep === 9) return key === "lumber_mill";
+                            if (key === "road" && tutorialStep >= 2) return true;
+                            if (tutorialStep === 2) return key === "road";
+                            if (tutorialStep === 3) return key === "town_hall";
+                            if (tutorialStep === 5) return key === tutorialSelectedBusiness;
+                            if (tutorialStep === 6) return key === "trade_center";
+                            if (tutorialStep === 7) return key === "logistics_hq";
+                            if (tutorialStep === 8) return key === "builder_company";
+                            if (tutorialStep === 9) return key === tutorialSelectedBusiness;
+                            if (tutorialStep === 10) return key === "lumber_mill";
                             return false;
                           }
 
@@ -2620,6 +2733,22 @@ export default function BusinessEmpireGame() {
                           <div className={`w-3.5 h-3.5 rounded shrink-0 ${selectedInfo.config.color}`} />
                           <h4 className="font-black text-neutral-100 text-base truncate">{selectedInfo.config.name}</h4>
                         </div>
+                        {/* V0.12 Road Connectivity Status badge */}
+                        {(() => {
+                          const connectedSet = getConnectedBuildings(gameState);
+                          const isConnected = connectedSet.has(bObj.id);
+                          return (
+                            <div className="mb-2.5">
+                              <span className={`inline-flex items-center gap-1 py-0.5 px-2 rounded-lg text-[9px] font-black uppercase font-mono tracking-wider ${
+                                isConnected 
+                                  ? "bg-emerald-950 text-emerald-400 border border-emerald-900/40" 
+                                  : "bg-rose-950 text-rose-450 border border-rose-900/40 animate-pulse"
+                              }`}>
+                                {isConnected ? "🟢 Connected" : "🔴 No Road Access"}
+                              </span>
+                            </div>
+                          );
+                        })()}
                         <p className="text-[11px] text-neutral-400 leading-normal">
                           {selectedInfo.config.description}
                         </p>
@@ -3486,9 +3615,22 @@ export default function BusinessEmpireGame() {
                       {/* Import Buttons */}
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-[10px] font-mono">
                         {Object.entries(RESOURCES_CONFIG)
-                          .filter(([id, cfg]) => cfg.category === "natural" || id === "mortar" || id === "cement")
+                          .filter(([id]) => id !== "electricity")
                           .map(([resId, cfg]) => {
-                            const costPerUnit = cfg.basePrice * 2.5; // Premium import price
+                            const importProps = (() => {
+                              if (["vehicles", "medicine", "uranium_ore"].includes(resId)) {
+                                return { multiplier: 3.5, deliveryTime: 65 };
+                              }
+                              if (["electronics", "car_parts", "chemicals"].includes(resId)) {
+                                return { multiplier: 2.3, deliveryTime: 40 };
+                              }
+                              if (cfg.category === "processed") {
+                                return { multiplier: 1.8, deliveryTime: 25 };
+                              }
+                              return { multiplier: 1.5, deliveryTime: 15 };
+                            })();
+
+                            const costPerUnit = cfg.basePrice * importProps.multiplier;
                             const importQty = 50;
                             const totalCost = costPerUnit * importQty;
                             const canAfford = gameState.money >= totalCost;
@@ -3498,7 +3640,7 @@ export default function BusinessEmpireGame() {
                               <div key={resId} className="bg-neutral-950 p-2.5 rounded-xl border border-neutral-850 flex flex-col justify-between h-24">
                                 <div>
                                   <span className="font-bold text-neutral-300 block truncate">{cfg.name}</span>
-                                  <span className="text-neutral-500 text-[9px] block">Order: 50x</span>
+                                  <span className="text-neutral-500 text-[9px] block">Order: 50x ({importProps.deliveryTime}s)</span>
                                   <span className="text-amber-500 text-[9px] font-bold block">${totalCost.toFixed(0)}</span>
                                 </div>
                                 
@@ -3513,7 +3655,7 @@ export default function BusinessEmpireGame() {
                                         id: `imp-${Date.now()}-${Math.floor(Math.random() * 1050)}`,
                                         resource: resId,
                                         qty: importQty,
-                                        timeRemaining: 15,
+                                        timeRemaining: importProps.deliveryTime,
                                         cost: totalCost
                                       };
                                       return {

@@ -303,3 +303,66 @@ Payroll Deficit Protection:
 Repayment Actions & Overdue Penalties:
 * Overdue Auto-Pay & Interest: After 10 game days, if cash reserves are sufficient, the debt is auto-deducted with a 5% interest penalty. If cash remains insufficient, the penalty rolls over for another 10 days at 5% interest.
 * Manual HUD Settle Action: Renders an active warning badge in the header ("🚨 Payables: ₹X (Yd)") with an instant **"Repay"** button. Settle your debt early at any time as soon as you have enough cash to avoid the 5% penalty.
+
+--------------------------------------------------------------------------------
+11. VERSION 0.12: ROAD & CONNECTIVITY SYSTEM
+--------------------------------------------------------------------------------
+BFS Adjacency Pathfinder:
+* Pathfinder Graph: Created `src/simulation/roadPathfinder.ts` implementing a BFS pathfinding graph of the city's road network. Validates connectivity between any building/company and the Logistics HQ (`logistics_hq`).
+* Building Placement Constraint: Blocks construction in `canPlaceBuilding()` if a building is not adjacent to at least one road tile, or if that road tile is disconnected from the Logistics HQ network. Displays descriptive placement block alerts.
+
+Dynamic Operational Penalties:
+* Connected State Flags: Ticks check connectivity on every second. Disconnected buildings display `🔴 No Road Access` inside the Property Details modal.
+* Interrupted Operations: Disconnecting a building pauses all operations (production, billing, sales, crop progression, and logistics fleet shipments) without destroying the structure. Disables upgrades for disconnected buildings. Operations automatically resume once roads are restored.
+* paused Import Delivery: Pauses International Trade Center import delivery timers if the Trade Center itself loses connectivity to the Logistics HQ.
+
+--------------------------------------------------------------------------------
+12. VERSION 0.13: ECONOMY & BALANCE FINE-TUNING UPDATE
+--------------------------------------------------------------------------------
+Cement & Mortar Rebalance:
+* Cement Value Shift: Reduced `cement` basePrice to 20 (lowering 50x import costs to ₹2,500). Increased `mortar` basePrice to 70 (increasing 50x import costs to ₹8,750). Makes raw ingredient mixing inside factories highly profitable compared to outright importing.
+
+Retail & Manufacturing Imbalance:
+* Boosted Factory Outputs: Multiplied output recipe yields (Clothes/Food/Grocery to 6x; Furniture/Medicine/Electronics to 4x; Vehicles to 2x). Operates factories at high yields that outpace individual retail stores, incentivizing construction of additional shops or Showroom upgrades.
+* Showroom Merger Rule: Changed the `clothing_company` merger requirements to mandate **2 Clothing Showrooms** (up from 1 showroom).
+
+Trade Terminal Imports & Late-Game Goals:
+* Import Intermediate Parts: Added intermediate manufacturing components (Steel, Fuel, Chemicals, Car Parts) to the Trade Terminal import catalog list.
+* Proportional Premiums: Rebalanced import prices by introducing category-based multipliers: 1.5x for natural resources and 1.6x for processed components (down from 2.5x). Improves assembly margins.
+* Delayed Luxury Hotels: Increased build costs of `hotel` to ₹7,500 cash, 250 Iron, 200 Stone, 150 Mortar, and 300 Wood (Maintenance increased to ₹45/month) to position it as a late-game milestone.
+
+--------------------------------------------------------------------------------
+13. VERSION 0.14: 4-TIER DYNAMIC IMPORT OVERHAUL & UNLOCKED MARKET ACCESS
+--------------------------------------------------------------------------------
+Open Marketplace (No Hard Tech-Age Locks):
+* Unrestricted Access: Removed import age locks. Every resource (except static electricity) can now be imported from day one, allowing players to build and maintain basic infrastructure (like cement and mortar) in the starting Foundation Age.
+* High-Tech Premiums: Prevents exploitation by implementing a 4-tier scaling import price and delivery time structure.
+
+Dynamic 4-Tier Import Structure:
+* Natural Resources (1.5x Premium, 15s Delivery): Basic elements like Wood, Cotton, Coal, Oil, Stone, Limestone, Iron/Copper Ore, and Silicon.
+* Processed Materials (1.8x Premium, 25s Delivery): Intermediate products including Cement, Mortar, Steel, Fuel, Clothes, Food, Grocery Goods, and Furniture.
+* Advanced Components (2.3x Premium, 40s Delivery): Technical products like Electronics, Car Parts, and Chemicals.
+* Strategic/Strategic High-Tech (3.5x Premium, 65s Delivery): High-end items like Assembled Vehicles, Pharmaceuticals (Medicine), and Uranium Ore.
+
+Encouraging Vertical Integration:
+* Satisfying Margins: Designing import premium margins so importing inputs to assemble items remains viable, but transitioning to local extraction and factories yields massive, rewarding profit increments.
+* Strategic Choice: Reinforces regional identity by making importing a useful progression bridge that rewards players for building local self-sufficiency over time.
+
+--------------------------------------------------------------------------------
+14. VERSION 0.15: TUTORIAL ROAD FIRST OVERHAUL
+--------------------------------------------------------------------------------
+Tutorial Roadmap Repositioning:
+* Road Placement First: Repositioned the road construction step to Step 2 (immediately after Step 1 Welcome Screen), ensuring players place a road tile first. This satisfies the road adjacency constraint for the Administrative HQ (Town Hall) built in Step 3.
+* Linear Step Shift: Adjusted all subsequent steps: Step 3 is Town Hall, Step 4 is Business Selection, Step 5 is Placing First Shop (Shortage Alert), Step 6 is Import HQ, Step 7 is Logistics HQ, Step 8 is Builder Company, Step 9 is Shop Placement, Step 10 is Lumber Mill, and Step 11 is the Completion Screen.
+
+Menu Navigation & Advisor Prompts:
+* Active Advisor Dialogs: Renumbered advisor overlay containers and dialog panels. Directs the player to the "Infrastructure" tab during Step 2 (Road) and Step 3 (Town Hall) and maps correct commerce/extraction selections later.
+* instant Road Progression: Retained instant progression, changing step to Step 3 immediately upon first road placement. Let's start the simulation with infrastructure right from the start!
+
+--------------------------------------------------------------------------------
+15. VERSION 0.16: TUTORIAL 12 ROADS PLACEMENT REQUIREMENT
+--------------------------------------------------------------------------------
+Enforced Road Construction Target:
+* Placed Roads Check: Wired the road construction event to check if the total number of placed roads reaches 12 before advancing to Step 3 (Administrative HQ / Town Hall).
+* Dynamic Advisor Badge: Binds a real-time progress text string `(Progress: X/12)` inside the government advisor box to show the player exactly how many roads they have constructed.
+
