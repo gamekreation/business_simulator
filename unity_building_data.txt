@@ -1,0 +1,1308 @@
+================================================================================
+BUSINESS EMPIRE - UNITY BUILDING CONFIGURATION DATA (SCRIPTABLEOBJECT EXPORTS)
+================================================================================
+This file contains ScriptableObject configuration dumps formatted for Unity copy-paste.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+BUILDING ID: iron_mine
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "iron_mine"
+Display Name: "Iron Mine"
+Icon Path: "Icons/Buildings/iron_mine"
+Prefab Path: "Prefabs/Buildings/iron_mine"
+Preview Prefab Path: "Prefabs/Previews/iron_mine_Preview"
+
+[Placement Rules]
+Width: 2
+Height: 2
+Required Deposit Type: ResourceNodeType.IronDeposit
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 2f
+Base Monthly Salary: 50
+Base Repair Cost: 75
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: quarry
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "quarry"
+Display Name: "Limestone Quarry"
+Icon Path: "Icons/Buildings/quarry"
+Prefab Path: "Prefabs/Buildings/quarry"
+Preview Prefab Path: "Prefabs/Previews/quarry_Preview"
+
+[Placement Rules]
+Width: 2
+Height: 2
+Required Deposit Type: ResourceNodeType.LimestoneDeposit
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 2f
+Base Monthly Salary: 40
+Base Repair Cost: 60
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: oil_rig
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "oil_rig"
+Display Name: "Oil Rig"
+Icon Path: "Icons/Buildings/oil_rig"
+Prefab Path: "Prefabs/Buildings/oil_rig"
+Preview Prefab Path: "Prefabs/Previews/oil_rig_Preview"
+
+[Placement Rules]
+Width: 2
+Height: 2
+Required Deposit Type: ResourceNodeType.OilField
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 2f
+Base Monthly Salary: 150
+Base Repair Cost: 225
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: coal_extractor
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "coal_extractor"
+Display Name: "Coal Shaft Mine"
+Icon Path: "Icons/Buildings/coal_extractor"
+Prefab Path: "Prefabs/Buildings/coal_extractor"
+Preview Prefab Path: "Prefabs/Previews/coal_extractor_Preview"
+
+[Placement Rules]
+Width: 2
+Height: 2
+Required Deposit Type: ResourceNodeType.CoalDeposit
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 2f
+Base Monthly Salary: 40
+Base Repair Cost: 90
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: agricultural_farm
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "agricultural_farm"
+Display Name: "Agricultural Farm"
+Icon Path: "Icons/Buildings/agricultural_farm"
+Prefab Path: "Prefabs/Buildings/agricultural_farm"
+Preview Prefab Path: "Prefabs/Previews/agricultural_farm_Preview"
+
+[Placement Rules]
+Width: 2
+Height: 2
+Required Deposit Type: ResourceNodeType.FertileLand
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 2f
+Base Monthly Salary: 20
+Base Repair Cost: 53
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: lumber_mill
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "lumber_mill"
+Display Name: "Lumber Mill"
+Icon Path: "Icons/Buildings/lumber_mill"
+Prefab Path: "Prefabs/Buildings/lumber_mill"
+Preview Prefab Path: "Prefabs/Previews/lumber_mill_Preview"
+
+[Placement Rules]
+Width: 2
+Height: 2
+Required Deposit Type: ResourceNodeType.Forest
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 2f
+Base Monthly Salary: 30
+Base Repair Cost: 53
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: stone_quarry
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "stone_quarry"
+Display Name: "Stone Quarry"
+Icon Path: "Icons/Buildings/stone_quarry"
+Prefab Path: "Prefabs/Buildings/stone_quarry"
+Preview Prefab Path: "Prefabs/Previews/stone_quarry_Preview"
+
+[Placement Rules]
+Width: 2
+Height: 2
+Required Deposit Type: ResourceNodeType.StoneDeposit
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 2f
+Base Monthly Salary: 30
+Base Repair Cost: 45
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: copper_mine
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "copper_mine"
+Display Name: "Copper Mine"
+Icon Path: "Icons/Buildings/copper_mine"
+Prefab Path: "Prefabs/Buildings/copper_mine"
+Preview Prefab Path: "Prefabs/Previews/copper_mine_Preview"
+
+[Placement Rules]
+Width: 2
+Height: 2
+Required Deposit Type: ResourceNodeType.CopperDeposit
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 2f
+Base Monthly Salary: 100
+Base Repair Cost: 180
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: silicon_mine
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "silicon_mine"
+Display Name: "Silicon Mine"
+Icon Path: "Icons/Buildings/silicon_mine"
+Prefab Path: "Prefabs/Buildings/silicon_mine"
+Preview Prefab Path: "Prefabs/Previews/silicon_mine_Preview"
+
+[Placement Rules]
+Width: 2
+Height: 2
+Required Deposit Type: ResourceNodeType.SiliconDeposit
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 2f
+Base Monthly Salary: 120
+Base Repair Cost: 210
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: uranium_mine
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "uranium_mine"
+Display Name: "Uranium Mine"
+Icon Path: "Icons/Buildings/uranium_mine"
+Prefab Path: "Prefabs/Buildings/uranium_mine"
+Preview Prefab Path: "Prefabs/Previews/uranium_mine_Preview"
+
+[Placement Rules]
+Width: 2
+Height: 2
+Required Deposit Type: ResourceNodeType.UraniumDeposit
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 2f
+Base Monthly Salary: 350
+Base Repair Cost: 450
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: small_factory
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "small_factory"
+Display Name: "Small Factory"
+Icon Path: "Icons/Buildings/small_factory"
+Prefab Path: "Prefabs/Buildings/small_factory"
+Preview Prefab Path: "Prefabs/Previews/small_factory_Preview"
+
+[Placement Rules]
+Width: 3
+Height: 3
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 7f
+Base Monthly Salary: 100
+Base Repair Cost: 225
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: medium_factory
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "medium_factory"
+Display Name: "Medium Factory"
+Icon Path: "Icons/Buildings/medium_factory"
+Prefab Path: "Prefabs/Buildings/medium_factory"
+Preview Prefab Path: "Prefabs/Previews/medium_factory_Preview"
+
+[Placement Rules]
+Width: 3
+Height: 3
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 7f
+Base Monthly Salary: 220
+Base Repair Cost: 525
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: large_factory
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "large_factory"
+Display Name: "Large Factory"
+Icon Path: "Icons/Buildings/large_factory"
+Prefab Path: "Prefabs/Buildings/large_factory"
+Preview Prefab Path: "Prefabs/Previews/large_factory_Preview"
+
+[Placement Rules]
+Width: 3
+Height: 3
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 7f
+Base Monthly Salary: 450
+Base Repair Cost: 1125
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: clothing_shop
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "clothing_shop"
+Display Name: "Clothing Shop"
+Icon Path: "Icons/Buildings/clothing_shop"
+Prefab Path: "Prefabs/Buildings/clothing_shop"
+Preview Prefab Path: "Prefabs/Previews/clothing_shop_Preview"
+
+[Placement Rules]
+Width: 1
+Height: 1
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 2f
+Base Monthly Salary: 50
+Base Repair Cost: 60
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: furniture_shop
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "furniture_shop"
+Display Name: "Furniture Shop"
+Icon Path: "Icons/Buildings/furniture_shop"
+Prefab Path: "Prefabs/Buildings/furniture_shop"
+Preview Prefab Path: "Prefabs/Previews/furniture_shop_Preview"
+
+[Placement Rules]
+Width: 1
+Height: 1
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 2f
+Base Monthly Salary: 60
+Base Repair Cost: 75
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: food_shop
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "food_shop"
+Display Name: "Food Shop"
+Icon Path: "Icons/Buildings/food_shop"
+Prefab Path: "Prefabs/Buildings/food_shop"
+Preview Prefab Path: "Prefabs/Previews/food_shop_Preview"
+
+[Placement Rules]
+Width: 1
+Height: 1
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 2f
+Base Monthly Salary: 40
+Base Repair Cost: 53
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: grocery_shop
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "grocery_shop"
+Display Name: "Grocery Shop"
+Icon Path: "Icons/Buildings/grocery_shop"
+Prefab Path: "Prefabs/Buildings/grocery_shop"
+Preview Prefab Path: "Prefabs/Previews/grocery_shop_Preview"
+
+[Placement Rules]
+Width: 1
+Height: 1
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 2f
+Base Monthly Salary: 30
+Base Repair Cost: 45
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: medical_shop
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "medical_shop"
+Display Name: "Medical Shop"
+Icon Path: "Icons/Buildings/medical_shop"
+Prefab Path: "Prefabs/Buildings/medical_shop"
+Preview Prefab Path: "Prefabs/Previews/medical_shop_Preview"
+
+[Placement Rules]
+Width: 1
+Height: 1
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 2f
+Base Monthly Salary: 80
+Base Repair Cost: 90
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: electronics_shop
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "electronics_shop"
+Display Name: "Electronics Shop"
+Icon Path: "Icons/Buildings/electronics_shop"
+Prefab Path: "Prefabs/Buildings/electronics_shop"
+Preview Prefab Path: "Prefabs/Previews/electronics_shop_Preview"
+
+[Placement Rules]
+Width: 1
+Height: 1
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 2f
+Base Monthly Salary: 120
+Base Repair Cost: 150
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: gas_station
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "gas_station"
+Display Name: "Gas Station"
+Icon Path: "Icons/Buildings/gas_station"
+Prefab Path: "Prefabs/Buildings/gas_station"
+Preview Prefab Path: "Prefabs/Previews/gas_station_Preview"
+
+[Placement Rules]
+Width: 1
+Height: 1
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 2f
+Base Monthly Salary: 60
+Base Repair Cost: 68
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: interior_design_studio
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "interior_design_studio"
+Display Name: "Interior Design Studio"
+Icon Path: "Icons/Buildings/interior_design_studio"
+Prefab Path: "Prefabs/Buildings/interior_design_studio"
+Preview Prefab Path: "Prefabs/Previews/interior_design_studio_Preview"
+
+[Placement Rules]
+Width: 2
+Height: 2
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 3f
+Base Monthly Salary: 60
+Base Repair Cost: 120
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: architecture_firm
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "architecture_firm"
+Display Name: "Architecture Firm"
+Icon Path: "Icons/Buildings/architecture_firm"
+Prefab Path: "Prefabs/Buildings/architecture_firm"
+Preview Prefab Path: "Prefabs/Previews/architecture_firm_Preview"
+
+[Placement Rules]
+Width: 2
+Height: 2
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 3f
+Base Monthly Salary: 140
+Base Repair Cost: 225
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: consulting_firm
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "consulting_firm"
+Display Name: "Consulting Firm"
+Icon Path: "Icons/Buildings/consulting_firm"
+Prefab Path: "Prefabs/Buildings/consulting_firm"
+Preview Prefab Path: "Prefabs/Previews/consulting_firm_Preview"
+
+[Placement Rules]
+Width: 2
+Height: 2
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 3f
+Base Monthly Salary: 160
+Base Repair Cost: 270
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: garage
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "garage"
+Display Name: "Auto Service Garage"
+Icon Path: "Icons/Buildings/garage"
+Prefab Path: "Prefabs/Buildings/garage"
+Preview Prefab Path: "Prefabs/Previews/garage_Preview"
+
+[Placement Rules]
+Width: 2
+Height: 2
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 3f
+Base Monthly Salary: 80
+Base Repair Cost: 135
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: hotel
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "hotel"
+Display Name: "Luxury Hotel Resort"
+Icon Path: "Icons/Buildings/hotel"
+Prefab Path: "Prefabs/Buildings/hotel"
+Preview Prefab Path: "Prefabs/Previews/hotel_Preview"
+
+[Placement Rules]
+Width: 3
+Height: 3
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 3f
+Base Monthly Salary: 450
+Base Repair Cost: 1125
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: town_hall
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "town_hall"
+Display Name: "Administrative Town Hall"
+Icon Path: "Icons/Buildings/town_hall"
+Prefab Path: "Prefabs/Buildings/town_hall"
+Preview Prefab Path: "Prefabs/Previews/town_hall_Preview"
+
+[Placement Rules]
+Width: 2
+Height: 2
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 4f
+Base Monthly Salary: 180
+Base Repair Cost: 300
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: regional_hq
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "regional_hq"
+Display Name: "Regional HQ Hub"
+Icon Path: "Icons/Buildings/regional_hq"
+Prefab Path: "Prefabs/Buildings/regional_hq"
+Preview Prefab Path: "Prefabs/Previews/regional_hq_Preview"
+
+[Placement Rules]
+Width: 2
+Height: 2
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 4f
+Base Monthly Salary: 250
+Base Repair Cost: 50
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: builder_company
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "builder_company"
+Display Name: "Builder Company HQ"
+Icon Path: "Icons/Buildings/builder_company"
+Prefab Path: "Prefabs/Buildings/builder_company"
+Preview Prefab Path: "Prefabs/Previews/builder_company_Preview"
+
+[Placement Rules]
+Width: 2
+Height: 2
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 4f
+Base Monthly Salary: 140
+Base Repair Cost: 225
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: trade_center
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "trade_center"
+Display Name: "International Trade Center"
+Icon Path: "Icons/Buildings/trade_center"
+Prefab Path: "Prefabs/Buildings/trade_center"
+Preview Prefab Path: "Prefabs/Previews/trade_center_Preview"
+
+[Placement Rules]
+Width: 2
+Height: 2
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 4f
+Base Monthly Salary: 120
+Base Repair Cost: 180
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: logistics_hq
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "logistics_hq"
+Display Name: "Logistics HQ Operations"
+Icon Path: "Icons/Buildings/logistics_hq"
+Prefab Path: "Prefabs/Buildings/logistics_hq"
+Preview Prefab Path: "Prefabs/Previews/logistics_hq_Preview"
+
+[Placement Rules]
+Width: 2
+Height: 2
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 4f
+Base Monthly Salary: 160
+Base Repair Cost: 270
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: warehouse
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "warehouse"
+Display Name: "Warehouse"
+Icon Path: "Icons/Buildings/warehouse"
+Prefab Path: "Prefabs/Buildings/warehouse"
+Preview Prefab Path: "Prefabs/Previews/warehouse_Preview"
+
+[Placement Rules]
+Width: 2
+Height: 2
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 3f
+Base Monthly Salary: 20
+Base Repair Cost: 120
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: logistics_company
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "logistics_company"
+Display Name: "Goods Transport Company"
+Icon Path: "Icons/Buildings/logistics_company"
+Prefab Path: "Prefabs/Buildings/logistics_company"
+Preview Prefab Path: "Prefabs/Previews/logistics_company_Preview"
+
+[Placement Rules]
+Width: 2
+Height: 2
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 4f
+Base Monthly Salary: 100
+Base Repair Cost: 180
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: travel_tourism
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "travel_tourism"
+Display Name: "Tourism Office"
+Icon Path: "Icons/Buildings/travel_tourism"
+Prefab Path: "Prefabs/Buildings/travel_tourism"
+Preview Prefab Path: "Prefabs/Previews/travel_tourism_Preview"
+
+[Placement Rules]
+Width: 2
+Height: 2
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 4f
+Base Monthly Salary: 60
+Base Repair Cost: 150
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: bank
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "bank"
+Display Name: "Imperial Bank"
+Icon Path: "Icons/Buildings/bank"
+Prefab Path: "Prefabs/Buildings/bank"
+Preview Prefab Path: "Prefabs/Previews/bank_Preview"
+
+[Placement Rules]
+Width: 2
+Height: 2
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 4f
+Base Monthly Salary: 150
+Base Repair Cost: 375
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: clothing_company_hq
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "clothing_company_hq"
+Display Name: "Clothing Company HQ"
+Icon Path: "Icons/Buildings/clothing_company_hq"
+Prefab Path: "Prefabs/Buildings/clothing_company_hq"
+Preview Prefab Path: "Prefabs/Previews/clothing_company_hq_Preview"
+
+[Placement Rules]
+Width: 4
+Height: 4
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 4f
+Base Monthly Salary: 450
+Base Repair Cost: 750
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: car_company_hq
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "car_company_hq"
+Display Name: "Car Manufacturing Company HQ"
+Icon Path: "Icons/Buildings/car_company_hq"
+Prefab Path: "Prefabs/Buildings/car_company_hq"
+Preview Prefab Path: "Prefabs/Previews/car_company_hq_Preview"
+
+[Placement Rules]
+Width: 4
+Height: 4
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 4f
+Base Monthly Salary: 850
+Base Repair Cost: 1800
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: construction_company_hq
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "construction_company_hq"
+Display Name: "Construction Conglomerate HQ"
+Icon Path: "Icons/Buildings/construction_company_hq"
+Prefab Path: "Prefabs/Buildings/construction_company_hq"
+Preview Prefab Path: "Prefabs/Previews/construction_company_hq_Preview"
+
+[Placement Rules]
+Width: 4
+Height: 4
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 4f
+Base Monthly Salary: 650
+Base Repair Cost: 1200
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: pharma_company_hq
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "pharma_company_hq"
+Display Name: "Pharmaceutical Company HQ"
+Icon Path: "Icons/Buildings/pharma_company_hq"
+Prefab Path: "Prefabs/Buildings/pharma_company_hq"
+Preview Prefab Path: "Prefabs/Previews/pharma_company_hq_Preview"
+
+[Placement Rules]
+Width: 4
+Height: 4
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 4f
+Base Monthly Salary: 750
+Base Repair Cost: 1500
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: petroleum_company_hq
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "petroleum_company_hq"
+Display Name: "Petroleum Corporation HQ"
+Icon Path: "Icons/Buildings/petroleum_company_hq"
+Prefab Path: "Prefabs/Buildings/petroleum_company_hq"
+Preview Prefab Path: "Prefabs/Previews/petroleum_company_hq_Preview"
+
+[Placement Rules]
+Width: 4
+Height: 4
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 4f
+Base Monthly Salary: 950
+Base Repair Cost: 2250
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: electricity_company_hq
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "electricity_company_hq"
+Display Name: "Electricity Board HQ"
+Icon Path: "Icons/Buildings/electricity_company_hq"
+Prefab Path: "Prefabs/Buildings/electricity_company_hq"
+Preview Prefab Path: "Prefabs/Previews/electricity_company_hq_Preview"
+
+[Placement Rules]
+Width: 4
+Height: 4
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 4f
+Base Monthly Salary: 550
+Base Repair Cost: 900
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: hotel_company_hq
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "hotel_company_hq"
+Display Name: "Grand Hotel Resort Chain HQ"
+Icon Path: "Icons/Buildings/hotel_company_hq"
+Prefab Path: "Prefabs/Buildings/hotel_company_hq"
+Preview Prefab Path: "Prefabs/Previews/hotel_company_hq_Preview"
+
+[Placement Rules]
+Width: 4
+Height: 4
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 4f
+Base Monthly Salary: 1100
+Base Repair Cost: 2700
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+
+--------------------------------------------------------------------------------
+BUILDING ID: requirements
+--------------------------------------------------------------------------------
+[General Info]
+Building ID: "requirements"
+Display Name: "requirements"
+Icon Path: "Icons/Buildings/requirements"
+Prefab Path: "Prefabs/Buildings/requirements"
+Preview Prefab Path: "Prefabs/Previews/requirements_Preview"
+
+[Placement Rules]
+Width: 1
+Height: 1
+Required Deposit Type: ResourceNodeType.None
+Must Be Near Road: true
+
+[Construction Costs]
+Base Build Duration Days: 4f
+Base Monthly Salary: 50
+Base Repair Cost: 50
+Resource Costs:
+${constructionCosts.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}
+
+[Upgrade Costs Matrix]
+${upgradeCosts.map(uc => {
+  return `Target Level: ${uc.targetLevel}
+Costs:
+${uc.costs.map(cc => `  - Resource: "${cc.resourceId}", Amount: ${cc.amount}`).join('\n')}`;
+}).join('\n\n')}
+
+

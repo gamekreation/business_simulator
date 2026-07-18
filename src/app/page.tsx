@@ -1555,6 +1555,55 @@ export default function BusinessEmpireGame() {
     });
   };
 
+  const handleSellVehicle = (vehId: string) => {
+    setGameState(prev => {
+      const veh = prev.vehicles.find(v => v.id === vehId);
+      if (!veh) return prev;
+
+      const baseCfg = VEHICLE_CONFIGS.find(vc => vc.id === veh.type);
+      const baseCost = baseCfg ? baseCfg.cost : 1000;
+
+      let speedSpent = 0;
+      for (let l = 1; l < veh.speedLevel; l++) {
+        speedSpent += l * 800;
+      }
+
+      let capSpent = 0;
+      for (let l = 1; l < veh.capacityLevel; l++) {
+        capSpent += l * 800;
+      }
+
+      const refund = Math.round((baseCost + speedSpent + capSpent) * 0.7);
+
+      const stats = prev.stats || {
+        totalMoneyEarned: 0,
+        totalMoneySpent: 0,
+        resourcesProduced: {},
+        resourcesSold: {},
+        resourcesImported: {},
+        totalBuildingsConstructed: 0,
+        totalCompaniesMerged: 0,
+        totalTrucksPurchased: 0,
+        totalPlayTimeSeconds: 0,
+        totalConstructionTimeSaved: 0,
+        totalSkillPointsSpent: 0,
+        totalMovedResources: 0
+      };
+
+      const updatedStats = {
+        ...stats,
+        totalMoneyEarned: (stats.totalMoneyEarned || 0) + refund
+      };
+
+      return {
+        ...prev,
+        money: prev.money + refund,
+        vehicles: prev.vehicles.filter(v => v.id !== vehId),
+        stats: updatedStats
+      };
+    });
+  };
+
   // Upgrade merged company (HQ)
   const handleUpgradeCompany = (companyId: string) => {
     setGameState(prev => {
@@ -3712,8 +3761,36 @@ export default function BusinessEmpireGame() {
                               <div key={veh.id} className="bg-neutral-950 p-3 rounded-xl border border-neutral-900 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
                                 <div>
                                   <span className="font-bold text-neutral-200 capitalize">{veh.type.replace(/_/g, " ")}</span>
-                                  <div className="text-[10px] text-neutral-500 font-mono mt-0.5">
-                                    Speed: L{veh.speedLevel} • Capacity: L{veh.capacityLevel}
+                                  <div className="text-[10px] text-neutral-500 font-mono mt-0.5 flex flex-wrap items-center gap-1.5">
+                                    <span>Speed: L{veh.speedLevel} • Capacity: L{veh.capacityLevel}</span>
+                                    <span className="text-neutral-700">|</span>
+                                    <span className="text-neutral-450 font-bold">Route:</span>
+                                    <select
+                                      value={veh.assignedResource || "general"}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setGameState(prev => ({
+                                          ...prev,
+                                          vehicles: prev.vehicles.map(v => 
+                                            v.id === veh.id ? { ...v, assignedResource: val } : v
+                                          )
+                                        }));
+                                      }}
+                                      className="bg-neutral-900 border border-neutral-800 text-neutral-300 text-[9px] p-0.5 px-1.5 rounded focus:outline-none focus:ring-0 cursor-pointer font-sans font-bold"
+                                    >
+                                      <option value="general">🌍 General Duty (Auto)</option>
+                                      <option value="fertile_land_crop">🌾 Dedicated: Crops</option>
+                                      <option value="wood">🪵 Dedicated: Wood</option>
+                                      <option value="stone">🪨 Dedicated: Stone</option>
+                                      <option value="mortar">🧱 Dedicated: Mortar</option>
+                                      <option value="iron_ore">⚙️ Dedicated: Iron Ore</option>
+                                      <option value="coal">🔌 Dedicated: Coal</option>
+                                      <option value="oil">🛢️ Dedicated: Oil</option>
+                                      <option value="limestone">⛰️ Dedicated: Limestone</option>
+                                      <option value="copper">🔌 Dedicated: Copper</option>
+                                      <option value="silicon">💿 Dedicated: Silicon</option>
+                                      <option value="uranium_ore">☢️ Dedicated: Uranium</option>
+                                    </select>
                                   </div>
                                 </div>
 
@@ -3731,6 +3808,23 @@ export default function BusinessEmpireGame() {
                                     className="px-2.5 py-1 bg-neutral-800 hover:bg-neutral-750 text-[10px] text-neutral-200 rounded disabled:opacity-50"
                                   >
                                     +Capacity (${capCost})
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      const baseCfg = VEHICLE_CONFIGS.find(vc => vc.id === veh.type);
+                                      const baseCost = baseCfg ? baseCfg.cost : 1000;
+                                      let speedSpent = 0;
+                                      for (let l = 1; l < veh.speedLevel; l++) speedSpent += l * 800;
+                                      let capSpent = 0;
+                                      for (let l = 1; l < veh.capacityLevel; l++) capSpent += l * 800;
+                                      const refund = Math.round((baseCost + speedSpent + capSpent) * 0.7);
+                                      if (window.confirm(`Are you sure you want to sell this vehicle? You will receive a 70% refund of ₹${refund.toLocaleString()}.`)) {
+                                        handleSellVehicle(veh.id);
+                                      }
+                                    }}
+                                    className="px-2.5 py-1 bg-rose-950/65 hover:bg-rose-900 border border-rose-900/40 text-[10px] text-rose-450 rounded transition font-bold"
+                                  >
+                                    Sell
                                   </button>
                                 </div>
                               </div>

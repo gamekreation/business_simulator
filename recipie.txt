@@ -1,449 +1,92 @@
-🌍 Complete Production Chain (Prototype v0.1)
-Industry	Natural Resource	Processing Factory	Processed Material	Used By	Final Product	Sold At
-Agriculture	🌾 Fertile Land	Agricultural Farm	Crops	Food Factory	Food	Food Shop
-Agriculture	🌾 Fertile Land	Agricultural Farm	Cotton	Clothing Factory	Clothes	Clothing Shop
-Forestry	🌲 Forest	Lumber Mill	Wood	Furniture Factory	Furniture	Furniture Shop
-Mining	🪨 Stone	Stone Quarry	Stone	Mortar Factory	Mortar	Construction (Building/Upgrading)
-Mining	⛏ Iron Deposit	Iron Mine	Iron Ore	Steel Mill	Steel	Car Parts Factory, Large Buildings
-Mining	⚫ Coal Deposit	Coal Mine	Coal	Steel Mill, Cement Factory	—	Industrial Use
-Mining	🪨 Limestone Deposit	Limestone Quarry	Limestone	Cement Factory	Cement	Mortar Factory
-Petroleum	🛢 Oil Field	Oil Rig	Crude Oil	Oil Refinery	Fuel	Gas Station
-Technology	🟠 Copper Deposit	Copper Mine	Copper Ore	Electronics Factory	Electronics	Electronics Shop
-Technology	💎 Silicon Deposit	Silicon Mine	Silicon	Electronics Factory	Electronics	Electronics Shop
-Nuclear	☢ Uranium Deposit	Uranium Mine	Uranium Ore	Nuclear Plant (Future)	Nuclear Fuel	Power Plant (Future)
-🏭 Factory Production Recipes
-Factory	Inputs	Outputs	Used By
-Food Factory	Crops	Food	Food Shop
-Grocery Processing Factory	Crops	Grocery Goods	Grocery Shop
-Clothing Factory	Cotton	Clothes	Clothing Shop
-Furniture Factory	Wood	Furniture	Furniture Shop
-Mortar Factory	Stone + Cement	Mortar	Construction
-Cement Factory	Limestone + Coal	Cement	Mortar Factory
-Steel Mill	Iron Ore + Coal	Steel	Car Parts Factory
-Chemical Factory	Oil + Crops (Future)	Chemicals	Medical Factory
-Pharmaceutical Factory	Chemicals	Medicine	Medical Shop
-Electronics Factory	Copper + Silicon	Electronics	Electronics Shop
-Car Parts Factory	Steel	Car Parts	Vehicle Assembly Plant
-Vehicle Assembly Plant	Car Parts	Cars	Garage / Dealership
-🏪 Retail Chain
-Shop	Receives	Sells
-🍔 Food Shop	Food	Food
-🛒 Grocery Shop	Grocery Goods	Grocery Products
-👕 Clothing Shop	Clothes	Clothes
-🪑 Furniture Shop	Furniture	Furniture
-💊 Medical Shop	Medicine	Medicine
-📱 Electronics Shop	Electronics	Electronics
-⛽ Gas Station	Fuel	Fuel
-🏢 Service Businesses
-Business	Inputs	Output
-Interior Design Studio	Furniture	Interior Service
-Architecture Firm	None	Architecture Service
-Consulting Firm	None	Consulting Service
-Auto Service Garage	Car Parts	Vehicle Repair
-Tourism Office	None	Tourism Revenue
-Imperial Bank	None	Financial Services
-🚗 Large Company Production Chains
-Company	Requirements	Final Output
-Clothing Company	Clothing Factory + Clothing Showroom	Clothing Brand
-Furniture Company	Furniture Factory + Furniture Showroom	Furniture Brand
-Construction Company	Interior Studio + Architecture Firm	Construction Projects
-Pharmaceutical Company	Pharmaceutical Factory + Medical Shop	Medicines
-Petroleum Company	Oil Refinery + Gas Stations	Fuel Network
-Automobile Company	Steel Mill + Car Parts Factory + Vehicle Assembly + Garage + Dealership	Cars
-Electronics Company	Electronics Factory + Electronics Showroom	Electronics Brand
-Hotel Chain	Luxury Hotel + Tourism Office	Hospitality Services
-🏗 Construction Materials
+# Game Database - Buildings, Recipes, Skills & Resource Nodes
 
-These resources are only consumed when placing or upgrading buildings.
+This document provides a complete registry of the economic entities, manufacturing recipes, skills, and resource systems currently implemented in the simulator.
 
-Material	Source
-🪨 Stone	Stone Quarry
-🌲 Wood	Lumber Mill
-⛏ Iron Ore	Iron Mine
-🧱 Mortar	Mortar Factory
+---
 
-Cement is an intermediate product used only for manufacturing Mortar.
+## 1. Natural Resource Nodes & Extractors
 
-🚚 Complete Economic Flow
-Natural Resources
-│
-├── Stone
-├── Wood
-├── Iron Ore
-├── Crops
-├── Cotton
-├── Coal
-├── Limestone
-├── Crude Oil
-├── Copper
-├── Silicon
-└── Uranium
-        │
-        ▼
-Factories
-│
-├── Food
-├── Grocery Goods
-├── Clothes
-├── Furniture
-├── Cement
-├── Mortar
-├── Steel
-├── Chemicals
-├── Medicine
-├── Electronics
-├── Car Parts
-└── Cars
-        │
-        ▼
-Retail / Services
-│
-├── Food Shop
-├── Grocery Shop
-├── Clothing Shop
-├── Furniture Shop
-├── Medical Shop
-├── Electronics Shop
-├── Gas Station
-├── Garage
-└── Service Businesses
-        │
-        ▼
-Customers
-        │
-        ▼
-Money
-        │
-        ▼
-Expand → Upgrade → Merge → Create Large Companies
-💡 Suggestion for Antigravity
+### Natural Deposits
+* **🌾 Fertile Land**: Extracted by `agricultural_farm` to harvest **Crops (`fertile_land_crop`)** or **Cotton**.
+* **🌲 Forest**: Extracted by `lumber_mill` to harvest **Wood**.
+* **🪨 Stone Deposit**: Extracted by `stone_quarry` to harvest **Stone**.
+* **⛏ Iron Deposit**: Extracted by `iron_mine` to harvest **Iron Ore**.
+* **⚫ Coal Deposit** *(Industrial Age)*: Extracted by `coal_mine` to harvest **Coal**.
+* **🛢 Oil Field** *(Industrial Age)*: Extracted by `oil_rig` to harvest **Crude Oil**.
+* **⛰ Limestone Deposit** *(Industrial Age)*: Extracted by `limestone_quarry` to harvest **Limestone**.
+* **🟠 Copper Deposit** *(Tech Age)*: Extracted by `copper_mine` to harvest **Copper Ore**.
+* **💎 Silicon Deposit** *(Tech Age)*: Extracted by `silicon_mine` to harvest **Silicon**.
+* **☢ Uranium Deposit** *(Nuclear Age)*: Extracted by `uranium_mine` to harvest **Uranium Ore**.
 
-Tell Antigravity to make this 100% data-driven.
+---
 
-Instead of hardcoding factory recipes, create a configuration like:
+## 2. Infrastructure & Auxiliary Buildings
 
-Factory {
-  name
-  inputs[]
-  outputs[]
-  productionTime
-  batchSize
-  requiredFactorySize
-  unlockedAge
-}
+* **🏛 Administrative Town Hall (`town_hall`)**: National HQ. Upgrades unlock technological Ages.
+* **🗺 Regional HQ Hub (`regional_hq`)**: Auto-placed in unlocked regions. Coordinates local builder queues, logistics, and imports.
+* **🚚 Logistics HQ Operations (`logistics_hq`)**: Fleet Operations. Unlocks cargo vehicle purchasing.
+* **👷 Builder Company HQ (`builder_company`)**: Speeds up regional construction slots.
+* **🚢 International Trade Center (`trade_center`)**: Unlocks raw materials imports directly to the local warehouse.
+* **📦 Warehouse (`warehouse`)**: Increases local region warehouse storage capacity (VU limits).
 
-Then adding a new factory later (for example, a Glass Factory or Plastic Factory) becomes just adding a new row of data instead of rewriting simulation logic. That will save a huge amount of development time as your game grows.
+---
 
+## 3. Manufacturing Recipes (Factories)
 
-Here's a cleaner version that you can directly use as your Game Design Document or spreadsheet.
+Factories (`small_factory`, `medium_factory`, `large_factory`) process input resources into high-value intermediate or finished goods:
 
-Age	Natural Resources	Processed Materials	Major Buildings Unlocked	Purpose
-🟢 Foundation Age	🪨 Stone, 🌲 Wood, ⛏ Iron Ore, 🌾 Fertile Land	🧱 Mortar (Stone + Purchased Cement), 🍞 Food, 🪑 Furniture, 👕 Clothes, 🛒 Grocery Goods	Mines, Farms, Lumber Mill, Small Factories, Shops, Warehouse	Learn construction, production, logistics and retail economy.
-🟡 Industrial Age	⚫ Coal, 🛢 Oil, 🪨 Limestone	🏗 Cement, 🔩 Steel, ⛽ Fuel	Cement Factory, Steel Mill, Oil Refinery, Medium Factories	Become self-sufficient by producing construction materials and fuel instead of importing them.
-🔵 Technology Age	🟠 Copper, 💎 Silicon	📱 Electronics, 🔌 Electrical Components	Electronics Factory, Chemical Factory, Advanced Manufacturing	Unlock high-value industries and technology-based businesses.
-🟣 Nuclear Age	☢ Uranium	⚡ Nuclear Fuel, ☢ Nuclear Energy (Future)	Nuclear Power Plant, Advanced Industries	End-game industries with massive production and power generation.
-Resource Flow
-Natural Resource	Processed Into	Used By
-🌲 Wood	Furniture	Furniture Factory, Interior Business
-🪨 Stone	Mortar	All Building Construction
-🌾 Fertile Land	Crops / Cotton	Food Factory, Grocery Factory, Clothing Factory
-⛏ Iron Ore	Steel	Car Parts Factory, Construction, Large Buildings
-⚫ Coal	Steel, Cement	Steel Mill, Cement Factory
-🪨 Limestone	Cement	Mortar Factory, Construction
-🛢 Oil	Fuel	Gas Stations, Transport, Future Petrochemical Industry
-🟠 Copper	Electronic Components	Electronics Factory
-💎 Silicon	Chips	Electronics Factory
-☢ Uranium	Nuclear Fuel	Nuclear Power Plant (Future)
-Player Progression
-Stage	Player Identity
-🟢 Foundation Age	Local Entrepreneur
-🟡 Industrial Age	Industrialist
-🔵 Technology Age	Technology Tycoon
-🟣 Nuclear Age	Global Business Magnate
+| Recipe ID | Recipe Name | Input Ingredients | Manufactured Output | Downstream Consumer |
+| :--- | :--- | :--- | :--- | :--- |
+| `food_processing` | Food Processing | 3x Crops | 1x Food | `food_shop` (Retail) |
+| `grocery_processing` | Grocery Goods | 2x Crops | 1x Grocery Goods | `grocery_shop` (Retail) |
+| `clothing_weaving` | Fabric Weaving | 2x Cotton | 1x Clothes | `clothing_shop` (Retail) |
+| `furniture_making` | Furniture Making | 3x Wood | 1x Furniture | `furniture_shop` (Retail) / Interior Studio |
+| `cement_mixing` | Cement Mixing | 2x Limestone + 1x Coal | 2x Cement | Mortar Mixing Recipe |
+| `mortar_mixing` | Mortar Mixing | 2x Stone + 1x Cement | 3x Mortar | Building Construction / Upgrades |
+| `steel_smelting` | Steel Smelting | 2x Iron Ore + 1x Coal | 1x Steel | Car Parts Factory Recipe |
+| `chemical_factory` | Chemical Refining | 2x Crude Oil | 1x Chemicals | Medicine Synthesis Recipe |
+| `medicine_synthesis`| Medicine Synthesis | 2x Chemicals | 1x Medicine | `medical_shop` (Retail) |
+| `electronics_assembly`| Electronics Assembly | 2x Copper Ore + 1x Silicon | 1x Electronics | `electronics_shop` (Retail) |
+| `car_parts_factory`| Car Parts Casting | 2x Steel | 1x Car Parts | Vehicle Assembly Recipe / Garage |
+| `vehicle_assembly` | Vehicle Assembly | 3x Car Parts | 1x Cars | Garage (Service Shop) |
 
-I really like this progression because it mirrors the evolution of real-world economies:
+---
 
-Build → Produce → Industrialize → Innovate → Dominate
+## 4. Retail & Services Portfolio
 
-Players aren't just unlocking new buildings—they're moving through different eras of economic development, which makes progression feel meaningful rather than arbitrary.
+### Retail Stores (Consumes Finished Products ➔ Yields Cash)
+* **🍔 Food Shop**: Sells **Food** to local customers.
+* **🛒 Grocery Shop**: Sells **Grocery Goods** to local customers.
+* **👕 Clothing Shop**: Sells **Clothes** to local customers.
+* **🪑 Furniture Shop**: Sells **Furniture** to local customers.
+* **💊 Medical Shop**: Sells **Medicine** to local customers.
+* **📱 Electronics Shop**: Sells **Electronics** to local customers.
+* **⛽ Gas Station**: Sells **Fuel** to local customers.
 
+### Service Businesses (Consumes Goods or operates on service contracts)
+* **🏠 Interior Design Studio**: Consumes **Furniture** to deliver interior services.
+* **Auto Service Garage (`garage`)**: Consumes **Car Parts** to repair customer vehicles.
+* **📐 Architecture Firm**: Delivers architectural layout services.
+* **💼 Consulting Firm**: Delivers Corporate strategies and optimization services.
+* **🏨 Luxury Hotel Resort**: Delivers high-end tourism and hospitality services.
 
+---
 
-🪑 Furniture Shop
-Skill	Effect
-🏢 Showroom Space	Increases customer capacity
-📢 Marketing	Increases daily customers
-💰 Sales Team	Improves conversion rate
-⭐ Customer Service	Improves repeat customers
-🎨 Display & Design	Increases furniture selling price
-👕 Clothing Shop
-Skill	Effect
-👗 Fashion Collection	Higher selling price
-📢 Marketing	More visitors
-🏬 Store Expansion	Required for Showroom upgrade
-💳 Sales Team	Better conversion
-❤️ Customer Experience	Customer loyalty
-🍔 Food Shop / Restaurant
-Skill	Effect
-👨‍🍳 Chef Skill	Food quality
-🍽 Seating Capacity	More customers
-📢 Marketing	More footfall
-⭐ Customer Service	Better ratings
-⚡ Kitchen Efficiency	Faster serving
-🛒 Grocery Shop
-Skill	Effect
-📦 Inventory Management	Larger stock
-📢 Marketing	More customers
-🚚 Supply Chain	Faster restocking
-💰 Pricing Strategy	Better margins
-😊 Customer Satisfaction	Repeat buyers
-💊 Medical Shop
-Skill	Effect
-💊 Medicine Inventory	Larger stock
-👨‍⚕️ Pharmacist Skill	Better sales
-📢 Marketing	Customer growth
-📋 Compliance	Reduces penalties (future)
-❤️ Patient Service	Customer retention
-📱 Electronics Shop
-Skill	Effect
-🔧 Technical Knowledge	Higher-value sales
-📢 Marketing	More demand
-📦 Inventory	More products
-🤝 Premium Support	Better customer loyalty
-🏬 Store Expansion	Upgrade requirement
-🏠 Interior Design Studio
-Skill	Effect
-🎨 Design Creativity	Better project value
-👷 Project Management	Faster completion
-🤝 Client Relations	More projects
-📢 Marketing	Lead generation
-🏢 Office Expansion	Required for Corporate upgrade
-📐 Architecture Firm
-Skill	Effect
-📐 Design Quality	Higher project value
-📊 Planning Efficiency	Faster projects
-👷 Engineering	Unlocks larger projects
-📢 Marketing	More clients
-🏢 Office Space	Expansion requirement
-💼 Consulting Firm
-Skill	Effect
-🧠 Business Strategy	Higher consulting fees
-🤝 Networking	More clients
-📢 Brand Reputation	Customer growth
-📊 Research	Better project quality
-🏢 Office Expansion	Upgrade requirement
-🚗 Auto Service Garage
-Skill	Effect
-🔧 Mechanic Skill	Better repair quality
-⚡ Repair Speed	More vehicles/day
-🛠 Equipment	Higher-value services
-📢 Marketing	More customers
-🚗 Workshop Space	Expansion requirement
-🏭 Factory (Generic)
-Skill	Effect
-⚙ Production Efficiency	More output
-👷 Workforce Training	Faster production
-🛠 Machine Maintenance	Less downtime
-📦 Storage Capacity	Larger internal storage
-🔬 Process Optimization	Reduced input consumption
-🚚 Logistics Company
-Skill	Effect
-🚛 Fleet Size	More trucks
-🗺 Route Optimization	Faster deliveries
-⛽ Fuel Efficiency	Lower operating cost
-📦 Cargo Capacity	Bigger loads
-⚡ Dispatch Automation	Faster pickups
-🌍 Trade Center (Imports)
-Skill	Effect
-🚢 Import Capacity	Larger shipments
-📦 Import Slots	More simultaneous imports
-💰 Trade Negotiation	Lower import prices
-⚡ Customs Clearance	Faster delivery
-🌐 International Network	Unlock rare imports
-👷 Builder Company
-Skill	Effect
-👷 Construction Teams	More simultaneous builds
-🏗 Build Speed	Faster construction
-🛠 Equipment	Lower construction time
-📋 Planning	Reduced material waste
-🏢 Project Management	Faster upgrades
-🏛 Administrative Building
-Skill	Effect
-🏛 Governance	Unlock new tiers
-📜 City Planning	Increase building limit
-📈 Economic Policy	Global income bonus
-🏘 Regional Expansion	Unlock new regions
-📊 Administration	Global efficiency bonus
-Progression System
+## 5. Executive Skill Trees
 
-Every business follows the same progression:
+Players invest points earned from corporate operations to acquire global bonuses:
 
-Maximum Level: 30
-1 Skill Point per Level
-Each Skill: Max Level 5
-Total Skill Levels: 25 (leaving 5 flexible points for player choice)
+### 🟢 Production Branch
+* **Extraction Technology**: Increases global resource extraction rates.
+* **Manufacturing Efficiency**: Boosts factory processing speeds.
+* **Supply Logistics**: Reduces transit truck delivery delays.
 
-Promotion requirements:
+### 🟡 Marketing Branch
+* **Branding Strategy**: Increases selling prices across all retail shops.
+* **Customer Acquisition**: Boosts visitor count and sales volume.
+* **Territory Expansion**: Discounts regional grid unlock fees.
 
-Business Tier	Requirement
-Shop → Showroom	Business Level 15 + Required Expansion Skill Level 3
-Showroom → Dealership	Business Level 30 + Required Expansion Skill Level 5
-
-This creates meaningful choices. Players can't simply dump every point into profit—they must invest in expansion-related skills to unlock the next tier, while still deciding how much to specialize in marketing, production, efficiency, or customer experience. That balance makes each business feel different and encourages experimentation without permanently punishing mistakes (especially if you later allow skill resets for gems or in-game currency).
-
-
-🏢 Corporate Skill Tree (Merged Companies)
-
-Every merged company has 7 skills.
-
-4 Universal Corporate Skills (shared by every corporation)
-3 Industry-Specific Skills (unique to that industry)
-
-This makes learning easier because players don't have to relearn everything for every company.
-
-🌍 Universal Corporate Skills (All Companies)
-Skill	Effect	Why it Matters
-💰 Corporate Finance	+Profit, lower operating costs	Teaches financial management
-🌎 Brand Management	Higher customer demand and brand value	Teaches branding
-🚚 Supply Chain Management	Lower logistics cost, faster deliveries, lower raw material consumption	Teaches operations
-🏢 Business Expansion	Unlock regional expansion, larger HQs, additional branches	Teaches scaling a business
-👕 Clothing Company
-Skill	Effect
-👗 Fashion Innovation	Higher clothing value
-🏭 Textile Manufacturing	Faster clothing production
-🛍 Retail Network	More clothing sales
-🚗 Automobile Company
-Skill	Effect
-🔬 Vehicle R&D	Better quality & higher selling price
-⚙ Production Engineering	Faster vehicle assembly
-🚘 Dealer Network	Higher vehicle demand
-🪑 Furniture Company
-Skill	Effect
-🎨 Product Design	Premium furniture value
-🌲 Material Optimization	Lower wood consumption
-🏬 Showroom Excellence	Better sales conversion
-🏗 Construction Company
-Skill	Effect
-📐 Engineering Excellence	Better project quality
-👷 Project Management	Faster construction
-🧱 Material Optimization	Lower construction material usage
-💊 Pharmaceutical Company
-Skill	Effect
-🧪 Drug Research	Better medicines
-🏥 Healthcare Partnerships	Higher medicine demand
-📋 Regulatory Compliance	Fewer future penalties
-⛽ Petroleum Company
-Skill	Effect
-🛢 Extraction Technology	More crude oil
-⚗ Refining Efficiency	More fuel from crude
-⛽ Fuel Distribution	Better gas station performance
-⚡ Electricity Company
-Skill	Effect
-⚡ Power Generation	Higher electricity output
-🔌 Grid Optimization	Less transmission loss
-♻ Energy Innovation	Better efficiency
-🏨 Hotel Company
-Skill	Effect
-⭐ Hospitality	Better customer satisfaction
-🌍 Tourism Partnerships	More visitors
-🏖 Luxury Services	Higher room prices
-Why I think this system is powerful
-
-The player first learns how to run one shop.
-
-Then they merge into a corporation and suddenly they're thinking about:
-
-Finance
-Branding
-Supply Chains
-Expansion
-
-That mirrors how businesses evolve in real life.
-
-Instead of just giving the player "more profit," you're teaching them that small businesses optimize operations, while corporations optimize systems.
-
-I think this fits your original vision perfectly:
-
-The game doesn't just simulate businesses—it gradually teaches how businesses grow from a local shop into a multinational company.
-
-
-One suggestion I'd make yess but mine and quarry have 3 skill same generic and 2 skill depnd on mine or quarry 
-
-I actually like this much more. It creates consistency while keeping industries unique.
-
-I'd make every resource extractor follow the same template.
-
-⛏ Universal Skills (Shared by ALL Mines & Quarries)
-
-These teach mining operations.
-
-Skill	Effect	Max
-⚙ Extraction Technology	Increases production per cycle	5
-🚜 Heavy Machinery	Reduces production time	5
-📦 Storage Infrastructure	Increases local silo capacity	5
-
-These three exist on:
-
-Iron Mine
-Coal Mine
-Stone Quarry
-Limestone Quarry
-Copper Mine
-Silicon Quarry
-Uranium Mine
-Oil Rig (can rename Heavy Machinery to Pump Systems if you want)
-🪨 Stone Quarry
-Industry Skill	Effect
-🧱 Construction Grade Stone	Higher stone quality (future bonus to mortar/buildings)
-💥 Precision Blasting	Higher extraction yield
-🪨 Limestone Quarry
-Industry Skill	Effect
-🏗 Cement Grade Limestone	Improves cement production
-⚗ Mineral Purity	Better cement efficiency
-⛏ Iron Mine
-Industry Skill	Effect
-🔩 High Grade Ore	More steel output from Iron Ore
-⛏ Deep Mining	Unlock richer deposits
-⚫ Coal Mine
-Industry Skill	Effect
-🔥 High Carbon Coal	Better steel & cement production
-⛏ Seam Optimization	More coal yield
-🌲 Lumber Mill
-
-The Lumber Mill is a bit different, so I'd still keep 3 generic + 2 forestry skills.
-
-Generic
-⚙ Harvest Efficiency
-🚜 Forestry Equipment
-📦 Timber Yard
-Forestry
-🌲 Sustainable Forestry
-🪚 Wood Quality
-🌾 Farm
-Generic
-🚜 Farm Machinery
-📦 Grain Storage
-⏱ Harvest Speed
-Agriculture
-🌱 Crop Science
-💧 Irrigation
-🛢 Oil Rig
-Generic
-⚙ Pump Efficiency
-🛢 Storage Tanks
-⏱ Drilling Speed
-Petroleum
-🌊 Reservoir Engineering
-🛢 Crude Quality
-🟠 Copper Mine
-Industry Skill	Effect
-⚡ Conductivity Grade	Better electronics
-🔬 Ore Purity	Higher copper yield
-💎 Silicon Quarry
-Industry Skill	Effect
-💎 Silicon Purity	Better chip production
-🔬 Semiconductor Grade	Higher electronics efficiency
-☢ Uranium Mine
-Industry Skill	Effect
-☢ Radiation Safety	Less downtime
-⚛ Nuclear Grade Ore	Better nuclear fuel yield
+### 🔵 Finance Branch
+* **Maintenance Optimization**: Lowers building salaries and daily upkeep fees.
+* **Corporate Taxation**: Minimizes monthly tax penalties.
+* **Capital Liquidation**: Increases refunds earned when selling assets.

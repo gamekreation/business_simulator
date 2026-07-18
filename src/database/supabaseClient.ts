@@ -63,6 +63,7 @@ export interface GameState {
     speedLevel: number;
     capacityLevel: number;
     fuelLevel: number;
+    assignedResource?: string;
   }>;
   // V0.3 Imports queue
   imports?: Array<{

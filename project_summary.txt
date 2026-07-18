@@ -387,3 +387,22 @@ User Interface & Controls:
 Mobile Orientation Warning Banner:
 * Portrait Rotation Cover: Added a fullscreen portrait blocker overlay on mobile screens, politely suggesting users rotate their phones to landscape orientation for optimal RTS multi-column view.
 * Responsive CSS Landscape Overrides: Added landscape media rules in globals.css that restructure the header and grid layouts, scaling down components to cleanly fit the viewport height without vertically overflowing.
+
+--------------------------------------------------------------------------------
+18. VERSION 0.19: DEDICATED ROUTE ASSIGNMENTS & CROPS LOGISTICS
+--------------------------------------------------------------------------------
+Dedicated Logistics Route Selector:
+* Assigned Resource Dropdown: Added a dropdown menu next to each vehicle in the Active Cargo Fleet list, allowing players to assign them to general duties or specific resource routes (e.g. Wood, Stone, Iron, Crops).
+* Specialized Fleet Matching: Updates vehicle processing loops to restrict dedicated carriers exclusively to matching shipments, preventing manual dispatch bottlenecks.
+
+--------------------------------------------------------------------------------
+19. VERSION 0.20: VEHICLE LIQUIDATIONS & SALES REFUNDS
+--------------------------------------------------------------------------------
+Vehicle Sell Command:
+* Refund Return: Added a Sell button that liquidates selected cargo vehicles, returning a 70% refund of the original cost plus all cumulative speed/capacity upgrades.
+
+--------------------------------------------------------------------------------
+20. VERSION 0.21: AUTOMATED SILO DISPATCHER
+--------------------------------------------------------------------------------
+Silo-to-Warehouse Auto-Dispatcher:
+* Extraction Auto-Dispatch: Automatically spawns shipments to warehouses whenever raw extractors/farms silos have resources, enabling hands-free background hauling.

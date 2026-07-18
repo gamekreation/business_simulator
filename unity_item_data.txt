@@ -1,0 +1,281 @@
+================================================================================
+BUSINESS EMPIRE - UNITY ITEM/GOODS CONFIGURATION DATA (SCRIPTABLEOBJECT EXPORTS)
+================================================================================
+This file contains Item ScriptableObject configuration data for easy copy-paste.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+ITEM ID: iron_ore
+--------------------------------------------------------------------------------
+Item ID: "iron_ore"
+Display Name: "Iron Ore"
+Category: ItemCategory.Natural
+Volume Unit (VU): 2f
+Base Market Price: 12f
+Icon Path: "Icons/Items/iron_ore"
+
+
+--------------------------------------------------------------------------------
+ITEM ID: coal
+--------------------------------------------------------------------------------
+Item ID: "coal"
+Display Name: "Coal"
+Category: ItemCategory.Natural
+Volume Unit (VU): 2f
+Base Market Price: 10f
+Icon Path: "Icons/Items/coal"
+
+
+--------------------------------------------------------------------------------
+ITEM ID: oil
+--------------------------------------------------------------------------------
+Item ID: "oil"
+Display Name: "Oil"
+Category: ItemCategory.Natural
+Volume Unit (VU): 3f
+Base Market Price: 20f
+Icon Path: "Icons/Items/oil"
+
+
+--------------------------------------------------------------------------------
+ITEM ID: limestone
+--------------------------------------------------------------------------------
+Item ID: "limestone"
+Display Name: "Limestone"
+Category: ItemCategory.Natural
+Volume Unit (VU): 2.5f
+Base Market Price: 8f
+Icon Path: "Icons/Items/limestone"
+
+
+--------------------------------------------------------------------------------
+ITEM ID: fertile_land_crop
+--------------------------------------------------------------------------------
+Item ID: "fertile_land_crop"
+Display Name: "Crops"
+Category: ItemCategory.Natural
+Volume Unit (VU): 2f
+Base Market Price: 6f
+Icon Path: "Icons/Items/fertile_land_crop"
+
+
+--------------------------------------------------------------------------------
+ITEM ID: wood
+--------------------------------------------------------------------------------
+Item ID: "wood"
+Display Name: "Wood"
+Category: ItemCategory.Natural
+Volume Unit (VU): 1.5f
+Base Market Price: 5f
+Icon Path: "Icons/Items/wood"
+
+
+--------------------------------------------------------------------------------
+ITEM ID: cotton
+--------------------------------------------------------------------------------
+Item ID: "cotton"
+Display Name: "Cotton"
+Category: ItemCategory.Natural
+Volume Unit (VU): 1.2f
+Base Market Price: 4f
+Icon Path: "Icons/Items/cotton"
+
+
+--------------------------------------------------------------------------------
+ITEM ID: stone
+--------------------------------------------------------------------------------
+Item ID: "stone"
+Display Name: "Stone"
+Category: ItemCategory.Natural
+Volume Unit (VU): 1.8f
+Base Market Price: 4f
+Icon Path: "Icons/Items/stone"
+
+
+--------------------------------------------------------------------------------
+ITEM ID: copper_ore
+--------------------------------------------------------------------------------
+Item ID: "copper_ore"
+Display Name: "Copper Ore"
+Category: ItemCategory.Natural
+Volume Unit (VU): 2f
+Base Market Price: 15f
+Icon Path: "Icons/Items/copper_ore"
+
+
+--------------------------------------------------------------------------------
+ITEM ID: silicon
+--------------------------------------------------------------------------------
+Item ID: "silicon"
+Display Name: "Silicon"
+Category: ItemCategory.Natural
+Volume Unit (VU): 1.5f
+Base Market Price: 18f
+Icon Path: "Icons/Items/silicon"
+
+
+--------------------------------------------------------------------------------
+ITEM ID: uranium_ore
+--------------------------------------------------------------------------------
+Item ID: "uranium_ore"
+Display Name: "Uranium Ore"
+Category: ItemCategory.Natural
+Volume Unit (VU): 4f
+Base Market Price: 50f
+Icon Path: "Icons/Items/uranium_ore"
+
+
+--------------------------------------------------------------------------------
+ITEM ID: steel
+--------------------------------------------------------------------------------
+Item ID: "steel"
+Display Name: "Steel"
+Category: ItemCategory.Processed
+Volume Unit (VU): 4f
+Base Market Price: 65f
+Icon Path: "Icons/Items/steel"
+
+
+--------------------------------------------------------------------------------
+ITEM ID: fuel
+--------------------------------------------------------------------------------
+Item ID: "fuel"
+Display Name: "Fuel"
+Category: ItemCategory.Processed
+Volume Unit (VU): 3f
+Base Market Price: 50f
+Icon Path: "Icons/Items/fuel"
+
+
+--------------------------------------------------------------------------------
+ITEM ID: mortar
+--------------------------------------------------------------------------------
+Item ID: "mortar"
+Display Name: "Mortar"
+Category: ItemCategory.Processed
+Volume Unit (VU): 3f
+Base Market Price: 70f
+Icon Path: "Icons/Items/mortar"
+
+
+--------------------------------------------------------------------------------
+ITEM ID: cement
+--------------------------------------------------------------------------------
+Item ID: "cement"
+Display Name: "Cement"
+Category: ItemCategory.Processed
+Volume Unit (VU): 5f
+Base Market Price: 20f
+Icon Path: "Icons/Items/cement"
+
+
+--------------------------------------------------------------------------------
+ITEM ID: clothes
+--------------------------------------------------------------------------------
+Item ID: "clothes"
+Display Name: "Clothes"
+Category: ItemCategory.Processed
+Volume Unit (VU): 2f
+Base Market Price: 60f
+Icon Path: "Icons/Items/clothes"
+
+
+--------------------------------------------------------------------------------
+ITEM ID: grocery_goods
+--------------------------------------------------------------------------------
+Item ID: "grocery_goods"
+Display Name: "Grocery Goods"
+Category: ItemCategory.Processed
+Volume Unit (VU): 2f
+Base Market Price: 45f
+Icon Path: "Icons/Items/grocery_goods"
+
+
+--------------------------------------------------------------------------------
+ITEM ID: food
+--------------------------------------------------------------------------------
+Item ID: "food"
+Display Name: "Processed Food"
+Category: ItemCategory.Processed
+Volume Unit (VU): 3f
+Base Market Price: 35f
+Icon Path: "Icons/Items/food"
+
+
+--------------------------------------------------------------------------------
+ITEM ID: electronics
+--------------------------------------------------------------------------------
+Item ID: "electronics"
+Display Name: "Electronics Parts"
+Category: ItemCategory.Processed
+Volume Unit (VU): 3f
+Base Market Price: 110f
+Icon Path: "Icons/Items/electronics"
+
+
+--------------------------------------------------------------------------------
+ITEM ID: furniture
+--------------------------------------------------------------------------------
+Item ID: "furniture"
+Display Name: "Luxury Furniture"
+Category: ItemCategory.Processed
+Volume Unit (VU): 8f
+Base Market Price: 150f
+Icon Path: "Icons/Items/furniture"
+
+
+--------------------------------------------------------------------------------
+ITEM ID: car_parts
+--------------------------------------------------------------------------------
+Item ID: "car_parts"
+Display Name: "Car Parts"
+Category: ItemCategory.Processed
+Volume Unit (VU): 3f
+Base Market Price: 120f
+Icon Path: "Icons/Items/car_parts"
+
+
+--------------------------------------------------------------------------------
+ITEM ID: vehicles
+--------------------------------------------------------------------------------
+Item ID: "vehicles"
+Display Name: "Assembled Vehicles"
+Category: ItemCategory.Processed
+Volume Unit (VU): 15f
+Base Market Price: 450f
+Icon Path: "Icons/Items/vehicles"
+
+
+--------------------------------------------------------------------------------
+ITEM ID: chemicals
+--------------------------------------------------------------------------------
+Item ID: "chemicals"
+Display Name: "Chemicals"
+Category: ItemCategory.Processed
+Volume Unit (VU): 2.5f
+Base Market Price: 75f
+Icon Path: "Icons/Items/chemicals"
+
+
+--------------------------------------------------------------------------------
+ITEM ID: medicine
+--------------------------------------------------------------------------------
+Item ID: "medicine"
+Display Name: "Pharmaceuticals"
+Category: ItemCategory.Processed
+Volume Unit (VU): 2f
+Base Market Price: 180f
+Icon Path: "Icons/Items/medicine"
+
+
+--------------------------------------------------------------------------------
+ITEM ID: electricity
+--------------------------------------------------------------------------------
+Item ID: "electricity"
+Display Name: "Electricity"
+Category: ItemCategory.Processed
+Volume Unit (VU): 0f
+Base Market Price: 30f
+Icon Path: "Icons/Items/electricity"
+
+

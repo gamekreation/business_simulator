@@ -713,6 +713,38 @@ export function runSimulationTick(state: GameState): TickResult {
     }
   });
 
+  // V0.19 Automatic Silo-to-Warehouse Shipment Dispatcher for Extractors & Farms
+  nextState.buildings.forEach(b => {
+    const config = BUILDING_CONFIGS[b.type];
+    if (!config) return;
+    
+    if (config.category === "extractor" || b.type === "agricultural_farm") {
+      if (!b.localResources) return;
+      
+      const activeResPair = Object.entries(b.localResources).find(([_, qty]) => (qty as number) > 0.5);
+      if (!activeResPair) return;
+      
+      if (!nextState.shipments) nextState.shipments = [];
+      const hasActiveShipment = nextState.shipments.some(s => s.buildingId === b.id && s.qtyDelivered < s.qty);
+      if (hasActiveShipment) return;
+      
+      const [resId, qty] = activeResPair;
+      
+      const newShipment = {
+        id: `ship-auto-${b.id}-${Date.now()}`,
+        buildingId: b.id,
+        resource: resId,
+        qty: qty as number,
+        qtyDelivered: 0,
+        regionId: b.regionId || "agriculture"
+      };
+      
+      nextState.shipments.push(newShipment);
+      b.localResources[resId] = 0;
+      logs.push(`🚚 Auto-Dispatched shipment: ${Math.round(qty as number)}x ${RESOURCES_CONFIG[resId]?.name || resId} heading to warehouse.`);
+    }
+  });
+
   // 11. V0.3 Logistics Fleet Hauling (Dispatch Shipment Queue)
   if (nextState.vehicles && nextState.vehicles.length > 0 && nextState.shipments && nextState.shipments.length > 0) {
     // Shuffle vehicles so different trucks get priority
@@ -725,7 +757,11 @@ export function runSimulationTick(state: GameState): TickResult {
       const truckCapacity = (cfg.capacity || 50) * (1 + (v.capacityLevel - 1) * 0.25);
       
       // Find the first shipment that is not yet fully delivered and has valid road access to Logistics HQ
-      const activeShipment = nextState.shipments.find(s => s.qtyDelivered < s.qty && (!s.buildingId || connectedBuildingIds.has(s.buildingId)));
+      const activeShipment = nextState.shipments.find(s => 
+        s.qtyDelivered < s.qty && 
+        (!s.buildingId || connectedBuildingIds.has(s.buildingId)) &&
+        (!v.assignedResource || v.assignedResource === "general" || s.resource === v.assignedResource)
+      );
       if (!activeShipment) break;
 
       const resConfig = RESOURCES_CONFIG[activeShipment.resource];
